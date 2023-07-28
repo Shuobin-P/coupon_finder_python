@@ -1,0 +1,32 @@
+# Virtual environment
+.venv/
+env/
+conda/
+
+
+# Dependency files
+Pipfile.lock
+
+# Cache and temporary files
+*.pyc
+*.pyo
+__pycache__/
+.DS_Store
+
+# Log files
+logs/
+log/
+
+# Database files
+*.db
+*.sqlite
+
+# Configuration files
+config.yml
+*.env
+
+# IDE and editor generated files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
