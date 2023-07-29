@@ -1,6 +1,7 @@
 import os
 from flask import Flask
 from sqlalchemy import create_engine
+from flask_jwt_extended import JWTManager
 
 def create_app(test_config=None):
     # create and configure the app
@@ -23,9 +24,10 @@ def create_app(test_config=None):
             pass
         app.config['JSON_AS_ASCII'] = False
         app.config['JWT_SECRET_KEY'] = '123456'
+        jwt = JWTManager(app)
         from . import coupon, login        
         app.register_blueprint(login.login_bp)
-        # app.register_blueprint(coupon.coupon_bp)
+        app.register_blueprint(coupon.coupon_bp)
 
         
         return app

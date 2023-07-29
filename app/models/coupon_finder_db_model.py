@@ -11,7 +11,8 @@ class Coupon(Base):
     description = Column(String(255))
     total_quantity = Column(Integer, nullable=False)
     used_quantity = Column(Integer, nullable=False)
-    collected_quantity = Column(Integer)
+    collected_quantity = Column(Integer, nullable=False)
+    remaining_quantity = Column(Integer, nullable=False)
     start_date = Column(DateTime)
     expire_date = Column(DateTime)
     category_id = Column(Integer)
@@ -22,7 +23,7 @@ class Coupon(Base):
 
 
     
-    def __init__(self, title, status, picture_url, description, total_quantity, used_quantity, collected_quantity, start_date, expire_date, category_id, original_price, present_price, merchant_id, release_ts):
+    def __init__(self, title, status, picture_url, description, total_quantity, used_quantity, collected_quantity, remaining_quantity, start_date, expire_date, category_id, original_price, present_price, merchant_id, release_ts):
         self.title = title
         self.status =  status
         self.picture_url = picture_url
@@ -30,6 +31,7 @@ class Coupon(Base):
         self.total_quantity = total_quantity
         self.used_quantity = used_quantity
         self.collected_quantity = collected_quantity
+        self.remaining_quantity = remaining_quantity
         self.start_date = start_date
         self.expire_date = expire_date
         self.category_id = category_id
@@ -61,3 +63,27 @@ class User(Base):
         self.name = name
         self.open_id = open_id
         self.card_package_id = card_package_id
+
+class UserRole(Base):
+    __tablename__ = "user_role"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False)
+    role_id = Column(Integer, nullable=False)
+    
+    def __init__(self, user_id, role_id):
+        self.user_id = user_id
+        self.role_id = role_id
+
+class CardPackageCoupon(Base):
+    __tablename__ = "card_package_coupon"
+
+    id = Column(Integer, primary_key=True)
+    card_package_id = Column(Integer, nullable=False)
+    coupon_id = Column(Integer, nullable=False)
+    status = Column(Integer, nullable=False)
+    
+    def __init__(self, card_package_id, coupon_id, status):
+        self.card_package_id = card_package_id
+        self.coupon_id = coupon_id
+        self.status = status
