@@ -1,11 +1,13 @@
 import os
-from flask import Flask
+import redis
+from flask import Flask, g
 from sqlalchemy import create_engine
 from flask_jwt_extended import JWTManager
 
 def create_app(test_config=None):
     # create and configure the app
         global coupon_finder_engine
+        global redis
         app = Flask(__name__, instance_relative_config=True)
         app.config.from_mapping(
             SECRET_KEY='dev',
@@ -24,10 +26,21 @@ def create_app(test_config=None):
             pass
         app.config['JSON_AS_ASCII'] = False
         app.config['JWT_SECRET_KEY'] = '123456'
-        jwt = JWTManager(app)
-        from . import coupon, login        
+        JWTManager(app)
+        from . import coupon, login, search        
         app.register_blueprint(login.login_bp)
         app.register_blueprint(coupon.coupon_bp)
+        app.register_blueprint(search.search_bp)
 
-        
+        @app.before_request
+        def before_request():
+            get_redis()        
         return app
+
+
+
+def get_redis():
+    if 'redis_client' not in g:
+        # 创建 Redis 客户端连接
+        g.redis_client = redis.StrictRedis(host='localhost', port=6379, db=2, password='123456')
+    return g.redis_client

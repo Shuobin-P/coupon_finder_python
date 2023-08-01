@@ -14,7 +14,7 @@ coupon_bp = Blueprint("coupon", __name__, url_prefix="/coupon")
 # 并将查询结果转换为json格式
 @jwt_required()
 @coupon_bp.route('/getHotCoupons', methods=['GET'])
-def getHotDrinkCoupons():
+def get_hot_drink_coupons():
     page_num = int(request.args.get("pageNum", 1))
     page_size = int(request.args.get("pageSize", 10))
     now_time = datetime.now()
@@ -39,7 +39,7 @@ def getHotDrinkCoupons():
 
 @jwt_required()
 @coupon_bp.route('/getHotFoodCoupons', methods=['GET'])
-def getHotFoodCoupons():
+def get_hot_food_coupons():
     url = "http://localhost:5000/coupon/getHotCoupons"
     params = {}
     params['categoryId'] =  1
@@ -53,7 +53,7 @@ def getHotFoodCoupons():
 
 @jwt_required()
 @coupon_bp.route("/getHotOtherCoupons", methods=['GET'])
-def getHotOtherCoupons():
+def get_hot_other_coupons():
     url = "http://localhost:5000/coupon/getHotCoupons"
     params = {}
     params['categoryId'] =  3
@@ -67,7 +67,7 @@ def getHotOtherCoupons():
 
 @jwt_required()
 @coupon_bp.route("/getCouponInfo", methods=['GET'])
-def getCouponInfo():
+def get_coupon_info():
     # 从数据库查询到相关信息之后，需要处理一下数据格式，然后返回给前端
     query = session.query(Coupon).filter(
         and_(
@@ -96,18 +96,13 @@ def getCouponInfo():
 
 @jwt_required()
 @coupon_bp.route("/getCoupon", methods=['GET'])
-def getCoupon():
-    # TODO 领取优惠券会有超卖问题。
+def get_coupon():
+    # 领取优惠券会有超卖问题。
     # 原思路：如果优惠券数量>=1，该列的值减1。由于每条sql都是一个事务，然后根据事务的隔离级别
     # 不管是哪种都不会发生 脏写的问题，但是这里不是脏写问题。
     # 事务不是串行执行的。
-
-    # 如果使用悲观锁实现，系统很安全，并发量小的时候，性能可能没有乐观锁好（但是这个影响不大吧），系统并发量大的时候，性能谁更好呢？
-    # 但是使用乐观锁，在系统并发量不大的时候，性能会更好。但是在并发量大的时候，性能如何？
     coupon_id = request.args.get("couponId")
     verify_jwt_in_request()
-    session.close()
-    session.begin()
     open_id = get_jwt_identity()
     # 每种优惠券，每个用户只能领取一张
     card_package_id = session.query(User.card_package_id).filter(User.open_id == open_id).first()
@@ -118,22 +113,40 @@ def getCoupon():
         ).first()
     if result is not None:
         return jsonify({"msg": "已经领取过了"}), 400
-
-    coupon = session.query(Coupon).filter(Coupon.id == coupon_id).with_for_update().first()
     session.commit()
-    if(coupon.remaining_quantity > 0):
-        session.query(Coupon).filter(Coupon.id == coupon_id).update({
-            "collected_quantity": coupon.collected_quantity + 1,
-            "remaining_quantity": coupon.remaining_quantity - 1
-            })
-        
-        # TODO 根据请求携带的jwt中的open_id，将优惠券领取信息插入到数据库中
-        session.query(CardPackageCoupon).add_entity(CardPackageCoupon(card_package_id, coupon_id, 1))
-        session.commit()
-
-    pass
+    # 我：我查询到优惠券的数量大于0，先给这个记录上锁，以防止出现并发访问，再减去优惠券的数量
+    # 但是如果大多数情况下，不会出现并发访问，那增加锁，就会降低性能。如何处理出现并发访问的时候带来的问题呢？
+    # 出现并发访问的问题，就是优惠券的数量与查询时不一致，因此，执行update的时候，判断语句需要加上优惠券的数量
+    # 与查询时的数量是否一致，如果不一致，就不执行update语句。
+    # coupon = session.query(Coupon).filter(Coupon.id == coupon_id).with_for_update().first()
+    # if(coupon.remaining_quantity > 0):
+    #     session.query(Coupon).filter(Coupon.id == coupon_id).update({
+    #         "collected_quantity": coupon.collected_quantity + 1,
+    #         "remaining_quantity": coupon.remaining_quantity - 1
+    #         })
+    #     # 领取优惠券，将优惠券放入用户的卡包中        
+    #     session.query(CardPackageCoupon).add_entity(CardPackageCoupon(card_package_id, coupon_id, 1))
+    #     session.commit()
+    while(True):
+        coupon = session.query(Coupon).filter(Coupon.id == coupon_id).first()
+        if(coupon.remaining_quantity > 0):
+            update_cnt = session.query(Coupon)\
+                .filter(Coupon.id == coupon_id, Coupon.remaining_quantity == coupon.remaining_quantity)\
+                .update({
+                            "collected_quantity": coupon.collected_quantity + 1,
+                            "remaining_quantity": coupon.remaining_quantity - 1
+                        }) > 0
+            session.commit()
+            if(update_cnt > 0):
+                break
+        else:
+            return jsonify({"msg": "优惠券已经领完了"}), 400
+    session.close()
+    return jsonify({"msg": "领取成功"}), 200
 
 @coupon_bp.route("/findCoupon", methods=['GET'])
-def findCoupon():
-    
-    pass
+def find_coupon():
+    query_keyword = request.args.get("queryInfo")
+    result = session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()
+    coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in result]
+    return jsonify({"data": coupons})
