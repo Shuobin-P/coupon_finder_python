@@ -52,3 +52,4 @@ def get_coupon_used_history():
         data.append(tmp)
     session.close()
     return jsonify({"data": data})
+ 
