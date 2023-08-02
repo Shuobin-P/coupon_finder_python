@@ -82,8 +82,10 @@ class CardPackageCoupon(Base):
     card_package_id = Column(Integer, nullable=False)
     coupon_id = Column(Integer, nullable=False)
     status = Column(Integer, nullable=False)
+    ts = Column(DateTime)
     
-    def __init__(self, card_package_id, coupon_id, status):
+    def __init__(self, card_package_id, coupon_id, status, ts):
         self.card_package_id = card_package_id
         self.coupon_id = coupon_id
         self.status = status
+        self.ts = ts

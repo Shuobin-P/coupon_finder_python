@@ -26,12 +26,14 @@ def create_app(test_config=None):
             pass
         app.config['JSON_AS_ASCII'] = False
         app.config['JWT_SECRET_KEY'] = '123456'
+        app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600
         JWTManager(app)
-        from . import coupon, login, search        
+        from . import coupon, login, search, wallet        
         app.register_blueprint(login.login_bp)
         app.register_blueprint(coupon.coupon_bp)
         app.register_blueprint(search.search_bp)
-
+        app.register_blueprint(wallet.wallet_bp)
+        
         @app.before_request
         def before_request():
             get_redis()        
