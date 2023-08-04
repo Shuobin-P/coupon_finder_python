@@ -2,6 +2,7 @@ import os
 import redis
 from flask import Flask, g
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from flask_jwt_extended import JWTManager
 def create_app(test_config=None):
     # create and configure the app
@@ -33,11 +34,19 @@ def create_app(test_config=None):
         app.register_blueprint(search.search_bp)
         app.register_blueprint(wallet.wallet_bp)
         app.register_blueprint(merchant.merchant_bp)
+
         @app.before_request
         def before_request():
             get_redis()      
+            get_db_session()
         return app
 
+def get_db_session():
+    if 'db_session' not in g:
+        # 创建数据库连接
+        g.db_session = sessionmaker(bind = coupon_finder_engine)()
+    return g.db_session
+     
 def get_redis():
     if 'redis_client' not in g:
         # 创建 Redis 客户端连接

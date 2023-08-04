@@ -97,4 +97,3 @@ class Category(Base):
 
     def __init__(self, name):
         self.name = name
-        

@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt, create_access_token
 from . import coupon_finder_engine, utils
-from .models.coupon_finder_db_model import UserRole, Coupon
+from .models.coupon_finder_db_model import UserRole, Coupon, GoodsDetailImage
 
 session = sessionmaker(bind = coupon_finder_engine)()
 merchant_bp = Blueprint("merchant", __name__, url_prefix="/merchant")
@@ -13,11 +13,8 @@ with open('app\config.yml') as f:
 @jwt_required()
 @merchant_bp.route('/verify', methods=['GET'])
 def verify():
-    verify_jwt_in_request()
     key = request.args.get("key", 0)
     if int(key) == int(config['mini']['merchantSecret']):
-        # TODO 在jwt中加入isMerchant为true
-        # 并在user_role表中加入一条记录
         open_id = get_jwt_identity()
         session.add(UserRole(user_id=utils.get_user_id(open_id), role_id=1))
         claims = get_jwt()
@@ -55,11 +52,10 @@ def commit_new_coupon_info():
     # 上传产品图片
     if len(coupon_info['product_img']) != 0:
         utils.upload_file('app/static/img/' + open_id, coupon_info['product_img'])
-    # 上传产品详细信息
+    # 上传产品详细信息图片
     for e in coupon_info['product_detail_img']:
         utils.upload_file('app/static/img/' + open_id, e)
-    # TODO url保存到数据库
-    t = int(time.time() * 1000)
+    t = utils.get_current_ts()
     if t < coupon_info['start_date']:
         status = 0
     elif t < coupon_info['expire_date']:
@@ -67,15 +63,27 @@ def commit_new_coupon_info():
     elif t >= coupon_info['expire_date']:
         status = 2
     category_id = utils.get_coupon_category_id(coupon_info['category'])
-    print("category_id: ", category_id)
-    Coupon(
-        coupon_info['title'], status, coupon_info['product_img'], 
-        coupon_info['description'], coupon_info['total_quantity'], 0,
-        0, coupon_info['total_quantity'], coupon_info['start_date'], 
-        coupon_info['expire_date'], coupon_info['category_id'], coupon_info['original_price'], 
-        coupon_info['present_price'], coupon_info['merchant_id'], coupon_info['release_ts'])
-    # TODO 将产品详细图片保存到数据库
-    # TODO 将本地产品图片和详细信息删除
+    merchant_id = utils.get_user_id(open_id)
+    product_img = "http://" +config['qiniu']['path']+ coupon_info['product_img']
+    utils.upload_file('app/static/img/' + open_id, coupon_info['product_img'])
+    os.remove('app/static/img/' + open_id +'/'+ coupon_info['product_img'])
+    cp = Coupon(
+            coupon_info['title'], status, product_img, 
+            coupon_info['description'], coupon_info['total_quantity'], 0,
+            0, coupon_info['total_quantity'], utils.format_ts(coupon_info['start_date']), 
+            utils.format_ts(coupon_info['expire_date']), category_id, coupon_info['original_price'], 
+            coupon_info['present_price'], merchant_id, utils.format_ts(utils.get_current_ts())
+        )
+    session.add(cp)
+    session.commit()
+    # 将产品详细图片上传到七牛云，并把url保存到数据库
+    # 删除本地缓存的照片
+    for e in coupon_info['product_detail_img']:
+        utils.upload_file('app/static/img/' + open_id, e)
+        os.remove('app/static/img/' + open_id +'/'+ e)
+        session.add(GoodsDetailImage(coupon_id = cp.id, img_url = "http://" +config['qiniu']['path']+'/'+ e))
+    session.commit()
+    # TODO 如果有图片上传到了服务器，但是最后提交到七牛云的时候，这些图片并没有被使用，那么如何删除这些图片？
     return jsonify({
         "data": {
             "code": 1
