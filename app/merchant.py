@@ -1,4 +1,4 @@
-import yaml,os,time
+import yaml,os,time, shutil
 from sqlalchemy.orm import sessionmaker
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt, create_access_token
@@ -52,9 +52,6 @@ def commit_new_coupon_info():
     # 上传产品图片
     if len(coupon_info['product_img']) != 0:
         utils.upload_file('app/static/img/' + open_id, coupon_info['product_img'])
-    # 上传产品详细信息图片
-    for e in coupon_info['product_detail_img']:
-        utils.upload_file('app/static/img/' + open_id, e)
     t = utils.get_current_ts()
     if t < coupon_info['start_date']:
         status = 0
@@ -65,8 +62,6 @@ def commit_new_coupon_info():
     category_id = utils.get_coupon_category_id(coupon_info['category'])
     merchant_id = utils.get_user_id(open_id)
     product_img = "http://" +config['qiniu']['path']+ coupon_info['product_img']
-    utils.upload_file('app/static/img/' + open_id, coupon_info['product_img'])
-    os.remove('app/static/img/' + open_id +'/'+ coupon_info['product_img'])
     cp = Coupon(
             coupon_info['title'], status, product_img, 
             coupon_info['description'], coupon_info['total_quantity'], 0,
@@ -76,14 +71,13 @@ def commit_new_coupon_info():
         )
     session.add(cp)
     session.commit()
-    # 将产品详细图片上传到七牛云，并把url保存到数据库
-    # 删除本地缓存的照片
+    # 上传产品详细信息图片
     for e in coupon_info['product_detail_img']:
         utils.upload_file('app/static/img/' + open_id, e)
-        os.remove('app/static/img/' + open_id +'/'+ e)
         session.add(GoodsDetailImage(coupon_id = cp.id, img_url = "http://" +config['qiniu']['path']+'/'+ e))
     session.commit()
-    # TODO 如果有图片上传到了服务器，但是最后提交到七牛云的时候，这些图片并没有被使用，那么如何删除这些图片？
+    # 如果有图片上传到了服务器，但是最后提交到七牛云的时候，这些图片并没有被使用，删除这些图片
+    shutil.rmtree('app/static/img/' + open_id)
     return jsonify({
         "data": {
             "code": 1
