@@ -3,7 +3,6 @@ import redis
 from flask import Flask, g
 from sqlalchemy import create_engine
 from flask_jwt_extended import JWTManager
-
 def create_app(test_config=None):
     # create and configure the app
         global coupon_finder_engine
@@ -18,7 +17,7 @@ def create_app(test_config=None):
         else:
             # load the test config if passed in
             app.config.from_mapping(test_config)
-        coupon_finder_engine = create_engine("mysql://root:123456@localhost/coupon_finder?charset=utf8")
+        coupon_finder_engine = create_engine("mysql://root:123456@localhost/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
         # ensure the instance folder exists
         try:
             os.makedirs(app.instance_path)
@@ -28,18 +27,16 @@ def create_app(test_config=None):
         app.config['JWT_SECRET_KEY'] = '123456'
         app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600
         JWTManager(app)
-        from . import coupon, login, search, wallet        
+        from . import coupon, login, search, wallet, merchant
         app.register_blueprint(login.login_bp)
         app.register_blueprint(coupon.coupon_bp)
         app.register_blueprint(search.search_bp)
         app.register_blueprint(wallet.wallet_bp)
-        
+        app.register_blueprint(merchant.merchant_bp)
         @app.before_request
         def before_request():
-            get_redis()        
+            get_redis()      
         return app
-
-
 
 def get_redis():
     if 'redis_client' not in g:

@@ -1,6 +1,4 @@
-import yaml
-import requests
-import time
+import yaml,requests, time
 from flask import request, Blueprint
 from sqlalchemy.orm import sessionmaker
 from flask_jwt_extended import create_access_token
@@ -29,22 +27,24 @@ def login():
     if(response.json().get('errcode') is None):
         k_v = {}
         k_v.update({"username": openid, "session_key": session_key, "created": int(time.time()*1000)})
-
+        user_id = -1
         user = session.query(User).filter(User.open_id == openid).first()
         if user is None:
             user = User(name="默认用户名", open_id=openid)
             session.add(user)
             session.commit()
-            user_id = session.query(User.id).filter(User.openid == openid).first()
+            user_id = int(session.query(User.id).filter(User.openid == openid).first()[0])
             session.query(User).filter(User.id == user_id).update({User.card_package_id: user_id})
             session.commit()
-            role_id = session.query(UserRole.role_id).filter(UserRole.user_id == user_id).first()
-            if role_id == 1:
-                k_v.update({"isMerchant": True})
-    session.close()
+        else:
+            user_id = int(user.id)
+        role_id = int(session.query(UserRole.role_id).filter(UserRole.user_id == user_id).first()[0])
+        if role_id == 1:
+            k_v.update({"isMerchant": True})
     if response.status_code == 200:
         # 认证成功，生成JWT并返回给客户端
         access_token = create_access_token(identity=openid, additional_claims=k_v)
+        
         return {
             'data': 
                 {

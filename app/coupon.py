@@ -33,8 +33,6 @@ def get_hot_drink_coupons():
     offset = (page_num - 1) * page_size
     coupons = query.offset(offset).limit(page_size).all()
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in coupons]
-    # 关闭 Session
-    session.close()    
     return {"data": coupons}
 
 @jwt_required()
@@ -81,7 +79,6 @@ def get_coupon_info():
                     ]
     coupon_info[0].update({"start_date" : int(coupon_info[0].get("start_date").timestamp()) * 1000})
     coupon_info[0].update({"expire_date" : int(coupon_info[0].get("expire_date").timestamp()) * 1000})
-    session.close()
     imgs_list = session.query(GoodsDetailImage.img_url).filter(
         and_(
                 GoodsDetailImage.coupon_id == request.args.get("id")
@@ -91,7 +88,6 @@ def get_coupon_info():
     for e in imgs_list:
         imgs_list_result.append(e[0])
     coupon_info[0].update({"images": imgs_list_result})
-    session.close()
     return {"data": dict(coupon_info[0])}
 
 @jwt_required()
@@ -105,12 +101,15 @@ def get_coupon():
     verify_jwt_in_request()
     open_id = get_jwt_identity()
     # 每种优惠券，每个用户只能领取一张
-    card_package_id = session.query(User.card_package_id).filter(User.open_id == open_id).first()
+    card_package_id = session.query(User.card_package_id).filter(User.open_id == open_id).first()[0]
+    print("卡包ID： ", card_package_id)
     result = session.query(CardPackageCoupon).filter_by(
         card_package_id = card_package_id,
         coupon_id = coupon_id,
         status = 1
         ).first()
+    print("结果是")
+    print(result)
     if result is not None:
         return jsonify({"msg": "已经领取过了"}), 400
     session.commit()
@@ -141,7 +140,6 @@ def get_coupon():
                 break
         else:
             return jsonify({"msg": "优惠券已经领完了"}), 400
-    session.close()
     return jsonify({"msg": "领取成功"}), 200
 
 @coupon_bp.route("/findCoupon", methods=['GET'])

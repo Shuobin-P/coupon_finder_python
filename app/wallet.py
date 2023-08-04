@@ -20,7 +20,6 @@ def get_available_coupons():
         id_list.append(item[0])
     result = session.query(Coupon).filter(Coupon.id.in_(id_list)).all()
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in result]
-    session.close()
     return jsonify({"data": coupons})
 
 @jwt_required()
@@ -50,6 +49,11 @@ def get_coupon_used_history():
              }
             )
         data.append(tmp)
-    session.close()
     return jsonify({"data": data})
- 
+
+@jwt_required()
+@wallet_bp.route('/getWalletID', methods=['GET'])
+def get_wallet_id():
+    verify_jwt_in_request()
+    open_id = get_jwt_identity()
+    return jsonify({"data": utils.get_card_package_id(open_id)})
