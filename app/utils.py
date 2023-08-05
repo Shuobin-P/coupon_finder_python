@@ -44,6 +44,9 @@ def get_current_ts():
     return int(time.time() * 1000)
 
 def format_ts(ts: int):
+    '''
+        将时间戳格式化为字符串%Y-%m-%d %H:%M:%S
+    '''
     # 假设给定的时间戳为1691143122611
     timestamp = ts / 1000  # 将毫秒转换为秒
     datetime_obj = datetime.fromtimestamp(timestamp)

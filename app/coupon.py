@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, g, current_app
+from flask import Blueprint, request, jsonify, g
 from sqlalchemy import and_
 from datetime import datetime
 from .models.coupon_finder_db_model import Coupon, GoodsDetailImage, User, CardPackageCoupon

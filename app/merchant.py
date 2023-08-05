@@ -1,4 +1,4 @@
-import yaml,os,time, shutil
+import yaml,os, shutil
 from sqlalchemy.orm import sessionmaker
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt, create_access_token
@@ -47,6 +47,8 @@ def upload():
 @merchant_bp.route('/commitNewCouponInfo', methods=['POST'])
 def commit_new_coupon_info():
     verify_jwt_in_request()
+    # TODO 由于需要上传图片到七牛云，如果网络比较慢，就会造成服务器响应速度慢，用户体验不好，可以使用
+    # 异步进行处理
     open_id = get_jwt_identity()
     coupon_info = request.get_json()
     # 上传产品图片
@@ -61,7 +63,7 @@ def commit_new_coupon_info():
         status = 2
     category_id = utils.get_coupon_category_id(coupon_info['category'])
     merchant_id = utils.get_user_id(open_id)
-    product_img = "http://" +config['qiniu']['path']+ coupon_info['product_img']
+    product_img = "http://" +config['qiniu']['path']+'/'+ coupon_info['product_img']
     cp = Coupon(
             coupon_info['title'], status, product_img, 
             coupon_info['description'], coupon_info['total_quantity'], 0,
@@ -82,4 +84,57 @@ def commit_new_coupon_info():
         "data": {
             "code": 1
         }
+    })
+
+@jwt_required()
+@merchant_bp.route('/getUpcomingCoupons', methods=['GET'])
+def get_upcoming_coupons():
+    verify_jwt_in_request()
+    open_id = get_jwt_identity()
+    merchant_id = utils.get_user_id(open_id)
+    coupons = session.query(Coupon).filter(
+        Coupon.merchant_id == merchant_id, 
+        Coupon.start_date > utils.format_ts(utils.get_current_ts()),
+        ).all()
+    result = [{k: v for k,v in coupon.__dict__.items() if k != '_sa_instance_state'} for coupon in coupons]
+    return jsonify({
+        "data": result
+    })
+
+
+
+
+@jwt_required()
+@merchant_bp.route('/getReleasedValidCoupons', methods=['GET'])
+def get_released_valid_coupons():
+    verify_jwt_in_request()
+    open_id = get_jwt_identity()
+    merchant_id = utils.get_user_id(open_id)
+    current_date = utils.format_ts(utils.get_current_ts())
+    coupons = session.query(Coupon).filter(
+        Coupon.merchant_id == merchant_id, 
+        Coupon.start_date <= current_date,
+        Coupon.expire_date > current_date
+        ).all()
+    result = [{k: v for k,v in coupon.__dict__.items() if k != '_sa_instance_state'} for coupon in coupons]
+    return jsonify({
+        "data": result
+    })
+
+
+@jwt_required()
+@merchant_bp.route('/getExpiredCoupon', methods=['GET'])
+def get_expired_coupon():
+    verify_jwt_in_request()
+    # 获得该用户已发布的过期优惠券，即当前时间大于优惠券过期时间
+    open_id = get_jwt_identity()
+    merchant_id = utils.get_user_id(open_id)
+    # TODO 如果使用status == 2进行查询，效率会更高，但是没有任务处理，把过期优惠券的status改为2，会少了一些优惠券
+    # 但是如果比较expire_date，查询速度会慢一些，但是得到的优惠券数据是准确的，建索引就好了。
+    coupons = session.query(Coupon).filter(
+        Coupon.merchant_id == merchant_id, Coupon.expire_date <= utils.format_ts(utils.get_current_ts())
+        ).all()
+    result = [{k: v for k,v in coupon.__dict__.items() if k != '_sa_instance_state'} for coupon in coupons]
+    return jsonify({
+        "data": result
     })
