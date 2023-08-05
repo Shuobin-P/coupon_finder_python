@@ -1,27 +1,24 @@
 import yaml
 import uuid
 import time
-from . import coupon_finder_engine
-from sqlalchemy.orm import sessionmaker
+from flask import g
 from .models.coupon_finder_db_model import  User, Category
-from qiniu import Auth, put_file, etag
+from qiniu import Auth, put_file
 from datetime import datetime
 
 with open('app\config.yml') as f:
     config = yaml.safe_load(f)
 
-session = sessionmaker(bind = coupon_finder_engine)()
-
 def get_coupon_category_id(keyword: str) -> int:
-    card_package_id = session.query(Category).filter(Category.name == keyword).first().id
+    card_package_id = g.db_session.query(Category).filter(Category.name == keyword).first().id
     return card_package_id
 
 def get_card_package_id(open_id: str) -> int : 
-    card_package_id = session.query(User.card_package_id).filter(User.open_id == open_id).first()
+    card_package_id = g.db_session.query(User.card_package_id).filter(User.open_id == open_id).first()
     return int(card_package_id[0])
 
 def get_user_id(open_id: str) -> int:
-    user_id = session.query(User.id).filter(User.open_id == open_id).first()
+    user_id = g.db_session.query(User.id).filter(User.open_id == open_id).first()
     return int(user_id[0])
 
 def generate_random_filename():

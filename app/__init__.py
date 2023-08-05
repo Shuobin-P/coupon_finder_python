@@ -1,9 +1,13 @@
 import os
 import redis
+import threading
 from flask import Flask, g
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker,scoped_session
 from flask_jwt_extended import JWTManager
+
+thread_local = threading.local()
+
 def create_app(test_config=None):
     # create and configure the app
         global coupon_finder_engine
@@ -39,13 +43,21 @@ def create_app(test_config=None):
         def before_request():
             get_redis()      
             get_db_session()
+        @app.teardown_request
+        def after_requets(request):
+            close_session()
         return app
 
 def get_db_session():
     if 'db_session' not in g:
-        # 创建数据库连接
-        g.db_session = sessionmaker(bind = coupon_finder_engine)()
+        g.db_session = sessionmaker(bind=coupon_finder_engine)()
     return g.db_session
+
+def close_session():
+    db_session = getattr(g, 'db_session', None)
+    if db_session:
+        db_session.close()
+        g.db_session = None
      
 def get_redis():
     if 'redis_client' not in g:

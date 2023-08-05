@@ -149,3 +149,8 @@ def find_coupon():
     result = g.db_session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in result]
     return jsonify({"data": coupons})
+
+@jwt_required()
+@coupon_bp.route("/generateQRCode", methods=['GET'])
+def generate_qrcode():
+    pass

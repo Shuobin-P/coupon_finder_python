@@ -1,12 +1,9 @@
 import yaml,requests, time
-from flask import request, Blueprint
-from sqlalchemy.orm import sessionmaker
+from flask import request, Blueprint, g
 from flask_jwt_extended import create_access_token
 from .models.coupon_finder_db_model import User, UserRole
-from . import coupon_finder_engine
 
 login_bp = Blueprint("login", __name__, url_prefix="/login")
-session = sessionmaker(bind = coupon_finder_engine)()
 with open('app\config.yml') as f:
     config = yaml.safe_load(f)
 
@@ -28,17 +25,17 @@ def login():
         k_v = {}
         k_v.update({"username": openid, "session_key": session_key, "created": int(time.time()*1000)})
         user_id = -1
-        user = session.query(User).filter(User.open_id == openid).first()
+        user = g.db_session.query(User).filter(User.open_id == openid).first()
         if user is None:
             user = User(name="默认用户名", open_id=openid)
-            session.add(user)
-            session.commit()
-            user_id = int(session.query(User.id).filter(User.openid == openid).first()[0])
-            session.query(User).filter(User.id == user_id).update({User.card_package_id: user_id})
-            session.commit()
+            g.db_session.add(user)
+            g.db_session.commit()
+            user_id = int(g.db_session.query(User.id).filter(User.openid == openid).first()[0])
+            g.db_session.query(User).filter(User.id == user_id).update({User.card_package_id: user_id})
+            g.db_session.commit()
         else:
             user_id = int(user.id)
-        role_id = int(session.query(UserRole.role_id).filter(UserRole.user_id == user_id).first()[0])
+        role_id = int(g.db_session.query(UserRole.role_id).filter(UserRole.user_id == user_id).first()[0])
         if role_id == 1:
             k_v.update({"isMerchant": True})
     if response.status_code == 200:

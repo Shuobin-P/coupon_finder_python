@@ -1,11 +1,9 @@
-import yaml,os, shutil
-from sqlalchemy.orm import sessionmaker
-from flask import Blueprint, request, jsonify
+import yaml,os,time, shutil
+from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt, create_access_token
-from . import coupon_finder_engine, utils
+from . import utils
 from .models.coupon_finder_db_model import UserRole, Coupon, GoodsDetailImage
 
-session = sessionmaker(bind = coupon_finder_engine)()
 merchant_bp = Blueprint("merchant", __name__, url_prefix="/merchant")
 with open('app\config.yml') as f:
     config = yaml.safe_load(f)
@@ -16,7 +14,7 @@ def verify():
     key = request.args.get("key", 0)
     if int(key) == int(config['mini']['merchantSecret']):
         open_id = get_jwt_identity()
-        session.add(UserRole(user_id=utils.get_user_id(open_id), role_id=1))
+        g.db_session.add(UserRole(user_id=utils.get_user_id(open_id), role_id=1))
         claims = get_jwt()
         claims.update({"isMerchant": True})
         access_token = create_access_token(identity=open_id, additional_claims=claims)
@@ -71,13 +69,13 @@ def commit_new_coupon_info():
             utils.format_ts(coupon_info['expire_date']), category_id, coupon_info['original_price'], 
             coupon_info['present_price'], merchant_id, utils.format_ts(utils.get_current_ts())
         )
-    session.add(cp)
-    session.commit()
+    g.db_session.add(cp)
+    g.db_session.commit()
     # 上传产品详细信息图片
     for e in coupon_info['product_detail_img']:
         utils.upload_file('app/static/img/' + open_id, e)
-        session.add(GoodsDetailImage(coupon_id = cp.id, img_url = "http://" +config['qiniu']['path']+'/'+ e))
-    session.commit()
+        g.db_session.add(GoodsDetailImage(coupon_id = cp.id, img_url = "http://" +config['qiniu']['path']+'/'+ e))
+    g.db_session.commit()
     # 如果有图片上传到了服务器，但是最后提交到七牛云的时候，这些图片并没有被使用，删除这些图片
     shutil.rmtree('app/static/img/' + open_id)
     return jsonify({
@@ -92,14 +90,16 @@ def get_upcoming_coupons():
     verify_jwt_in_request()
     open_id = get_jwt_identity()
     merchant_id = utils.get_user_id(open_id)
-    coupons = session.query(Coupon).filter(
+    current_date = utils.format_ts(utils.get_current_ts())
+    coupons = g.db_session.query(Coupon).filter(
         Coupon.merchant_id == merchant_id, 
-        Coupon.start_date > utils.format_ts(utils.get_current_ts()),
+        Coupon.start_date > current_date,
         ).all()
     result = [{k: v for k,v in coupon.__dict__.items() if k != '_sa_instance_state'} for coupon in coupons]
     return jsonify({
         "data": result
     })
+    
 
 
 
@@ -111,7 +111,7 @@ def get_released_valid_coupons():
     open_id = get_jwt_identity()
     merchant_id = utils.get_user_id(open_id)
     current_date = utils.format_ts(utils.get_current_ts())
-    coupons = session.query(Coupon).filter(
+    coupons = g.db_session.query(Coupon).filter(
         Coupon.merchant_id == merchant_id, 
         Coupon.start_date <= current_date,
         Coupon.expire_date > current_date
@@ -131,7 +131,7 @@ def get_expired_coupon():
     merchant_id = utils.get_user_id(open_id)
     # TODO 如果使用status == 2进行查询，效率会更高，但是没有任务处理，把过期优惠券的status改为2，会少了一些优惠券
     # 但是如果比较expire_date，查询速度会慢一些，但是得到的优惠券数据是准确的，建索引就好了。
-    coupons = session.query(Coupon).filter(
+    coupons = g.db_session.query(Coupon).filter(
         Coupon.merchant_id == merchant_id, Coupon.expire_date <= utils.format_ts(utils.get_current_ts())
         ).all()
     result = [{k: v for k,v in coupon.__dict__.items() if k != '_sa_instance_state'} for coupon in coupons]
