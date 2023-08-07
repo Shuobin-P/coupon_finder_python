@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from . import utils
 from .models.coupon_finder_db_model import CardPackageCoupon, Coupon
-
+from sqlalchemy import desc
 wallet_bp = Blueprint("wallet", __name__, url_prefix="/wallet")
 @jwt_required()
 @wallet_bp.route('/getAvailableCoupons', methods=['GET'])
@@ -28,10 +28,10 @@ def get_coupon_used_history():
     card_package_id = utils.get_card_package_id(open_id)
     sub_query = g.db_session.query(CardPackageCoupon)\
             .filter_by(card_package_id = card_package_id, status = 2)\
-            .order_by(CardPackageCoupon.ts).subquery()
+            .order_by(desc(CardPackageCoupon.used_ts)).subquery()
     result = g.db_session.query(
         Coupon.id,Coupon.title, Coupon.description, Coupon.picture_url, 
-        Coupon.original_price, Coupon.present_price, sub_query.c.ts)\
+        Coupon.original_price, Coupon.present_price, sub_query.c.used_ts)\
         .outerjoin(Coupon, sub_query.c.coupon_id == Coupon.id)
     data = []
     for tp in result:
@@ -43,7 +43,7 @@ def get_coupon_used_history():
                 "picture_url": tp[3],
                 "original_price": int(tp[4]),
                 "present_price": int(tp[5]),
-                "ts": tp[6]
+                "used_ts": tp[6]
              }
             )
         data.append(tmp)
