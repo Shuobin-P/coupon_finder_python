@@ -1,8 +1,10 @@
 import yaml
 import uuid
 import time
+import qrcode
+from io import BytesIO
 from flask import g
-from .models.coupon_finder_db_model import  User, Category
+from .models.coupon_finder_db_model import User, Category
 from qiniu import Auth, put_file
 from datetime import datetime
 
@@ -51,3 +53,21 @@ def format_ts(ts: int):
     # 格式化为字符串
     formatted_time = datetime_obj.strftime('%Y-%m-%d %H:%M:%S')
     return formatted_time
+
+def get_qrcode_byte_stream(data) -> bytes:
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # 将二维码图片以字节流的形式发送给前端
+    img_byte_array = BytesIO()
+    img.save(img_byte_array)
+    img_byte_array.seek(0)
+    return img_byte_array

@@ -1,3 +1,4 @@
+from . import utils
 from flask import Blueprint, request, jsonify, g
 from sqlalchemy import and_
 from datetime import datetime
@@ -145,12 +146,16 @@ def get_coupon():
 @jwt_required()
 @coupon_bp.route("/findCoupon", methods=['GET'])
 def find_coupon():
+    verify_jwt_in_request()
     query_keyword = request.args.get("queryInfo")
     result = g.db_session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in result]
     return jsonify({"data": coupons})
 
-@jwt_required()
 @coupon_bp.route("/generateQRCode", methods=['GET'])
 def generate_qrcode():
-    pass
+    # content字段其实就是一个url，用户扫描该二维码的时候，实际上，就是访问这个url
+    # 因此，本接口就是把content字段的内容，放入二维码中，然后把二维码返回给前端
+    url = request.args.get("content")
+    byte_array = utils.get_qrcode_byte_stream(url)
+    return byte_array
