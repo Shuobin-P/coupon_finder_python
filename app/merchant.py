@@ -1,4 +1,4 @@
-import yaml,os,time, shutil
+import yaml,os, shutil
 from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt, create_access_token
 from . import utils
@@ -101,9 +101,6 @@ def get_upcoming_coupons():
     })
     
 
-
-
-
 @jwt_required()
 @merchant_bp.route('/getReleasedValidCoupons', methods=['GET'])
 def get_released_valid_coupons():
@@ -129,8 +126,6 @@ def get_expired_coupon():
     # 获得该用户已发布的过期优惠券，即当前时间大于优惠券过期时间
     open_id = get_jwt_identity()
     merchant_id = utils.get_user_id(open_id)
-    # TODO 如果使用status == 2进行查询，效率会更高，但是没有任务处理，把过期优惠券的status改为2，会少了一些优惠券
-    # 但是如果比较expire_date，查询速度会慢一些，但是得到的优惠券数据是准确的，建索引就好了。
     coupons = g.db_session.query(Coupon).filter(
         Coupon.merchant_id == merchant_id, Coupon.expire_date <= utils.format_ts(utils.get_current_ts())
         ).all()

@@ -1,3 +1,3 @@
-from . import utils
+import utils
 
-print(utils.get_qrcode_byte_stream("https://www.baidu.com"))
+print(utils.get_released_coupon_merchant_id(3))

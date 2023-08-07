@@ -82,13 +82,13 @@ class CardPackageCoupon(Base):
     card_package_id = Column(Integer, nullable=False)
     coupon_id = Column(Integer, nullable=False)
     status = Column(Integer, nullable=False)
-    ts = Column(DateTime)
+    used_ts = Column(DateTime)
     
-    def __init__(self, card_package_id, coupon_id, status, ts):
+    def __init__(self, card_package_id, coupon_id, status, used_ts):
         self.card_package_id = card_package_id
         self.coupon_id = coupon_id
         self.status = status
-        self.ts = ts
+        self.used_ts = used_ts
 
 class Category(Base):
     __tablename__ = "category"

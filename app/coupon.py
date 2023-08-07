@@ -159,3 +159,50 @@ def generate_qrcode():
     url = request.args.get("content")
     byte_array = utils.get_qrcode_byte_stream(url)
     return byte_array
+
+@jwt_required()
+@coupon_bp.route("/useCoupon", methods=['GET'])
+def use_coupon():
+    verify_jwt_in_request()
+    wallet_id = request.args.get("wallet_id")
+    coupon_id = request.args.get("coupon_id")
+    open_id = get_jwt_identity()
+    # 1. 判断优惠券是否该老板发布的
+    # 2. 判断该优惠券是否在该卡包中，并且状态是未使用
+    # 3. 判断该优惠券是否过期
+    if utils.get_user_id(open_id) != utils.get_released_coupon_merchant_id(coupon_id):
+        return jsonify({"msg": "该优惠券不是该老板发布的", "code": 2 }), 400
+    query_result = g.db_session.query(CardPackageCoupon.status, CardPackageCoupon.id).filter(
+        CardPackageCoupon.card_package_id == wallet_id,
+        CardPackageCoupon.coupon_id == coupon_id,
+    ).first()
+    status = query_result[0]
+    card_package_coupon_id = query_result[1]
+    if status == 2:
+        return jsonify({"msg": "该优惠券已经使用过了", "code": 3 }), 400
+    elif status == 3:
+        return jsonify({"msg": "该优惠券已经过期了", "code": 4 }), 400
+    expire_date = g.db_session.query(Coupon.expire_date).filter(
+        Coupon.id == coupon_id
+    ).first()[0]
+    expire_date = datetime.strptime(str(expire_date), "%Y-%m-%d %H:%M:%S")
+    if expire_date < datetime.now():
+        return jsonify({"msg": "该优惠券已经过期了", "code": 4 }), 400
+    # 优惠券合法，消耗该优惠券
+    # 在卡包 优惠券 表中，将该优惠券的状态改为已使用
+    # 在coupon表中，将该优惠券的已使用数量加1，将剩余数量减1，领取数量-1
+    g.db_session.query(CardPackageCoupon).filter(
+        CardPackageCoupon.id == card_package_coupon_id
+    ).update({
+        "status": 2,
+        "used_ts": datetime.now().strftime("%Y-%m-%d")
+    })
+    g.db_session.commit()
+    g.db_session.query(Coupon).filter(
+        Coupon.id == coupon_id
+    ).update({
+        "used_quantity": Coupon.used_quantity + 1,
+        "remaining_quantity": Coupon.remaining_quantity - 1,
+        "collected_quantity": Coupon.collected_quantity - 1
+    })
+    return jsonify({"msg": "使用成功", "code": 1}), 200

@@ -4,7 +4,7 @@ import time
 import qrcode
 from io import BytesIO
 from flask import g
-from .models.coupon_finder_db_model import User, Category
+from .models.coupon_finder_db_model import User, Category, Coupon
 from qiniu import Auth, put_file
 from datetime import datetime
 
@@ -23,6 +23,13 @@ def get_user_id(open_id: str) -> int:
     user_id = g.db_session.query(User.id).filter(User.open_id == open_id).first()
     return int(user_id[0])
 
+def get_released_coupon_merchant_id(coupon_id: int) -> int:
+    '''
+        发布优惠券的商家的用户ID
+    '''
+    merchant_id = g.db_session.query(Coupon.merchant_id).filter(Coupon.id == int(coupon_id)).first()[0]
+    return int(merchant_id)
+    
 def generate_random_filename():
     random_uuid = uuid.uuid4()
     return str(random_uuid)
