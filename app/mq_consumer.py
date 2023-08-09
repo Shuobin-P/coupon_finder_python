@@ -1,13 +1,11 @@
 # -*- coding: UTF-8 -*-
-from .models.coupon_finder_db_model import Coupon, GoodsDetailImage
 import pika
 import sys
-import os, utils, mq_utils,shutil, json, yaml
+import os,mq_utils,shutil, json, yaml
+from models.coupon_finder_db_model import Coupon, GoodsDetailImage
 
 with open('app\config.yml') as f:
     config = yaml.safe_load(f)
-
-
 
 def main():
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
@@ -17,10 +15,11 @@ def main():
     channel.queue_declare(queue='hello')
     
     def commit_new_coupon_info(coupon_info):
+        print("coupon的内容：", coupon_info)
         open_id = coupon_info['open_id']
         if len(coupon_info['product_img']) != 0:
-            utils.upload_file('app/static/img/' + open_id, coupon_info['product_img'])
-        t = utils.get_current_ts()
+            mq_utils.upload_file('app/static/img/' + open_id, coupon_info['product_img'])
+        t = mq_utils.get_current_ts()
         if t < coupon_info['start_date']:
             status = 0
         elif t < coupon_info['expire_date']:
@@ -33,14 +32,14 @@ def main():
         cp = Coupon(
                 coupon_info['title'], status, product_img, 
                 coupon_info['description'], coupon_info['total_quantity'], 0,
-                0, coupon_info['total_quantity'], utils.format_ts(coupon_info['start_date']), 
-                utils.format_ts(coupon_info['expire_date']), category_id, coupon_info['original_price'], 
-                coupon_info['present_price'], merchant_id, utils.format_ts(utils.get_current_ts())
+                0, coupon_info['total_quantity'], mq_utils.format_ts(coupon_info['start_date']), 
+                mq_utils.format_ts(coupon_info['expire_date']), category_id, coupon_info['original_price'], 
+                coupon_info['present_price'], merchant_id, mq_utils.format_ts(mq_utils.get_current_ts())
             )
         dbsession.add(cp)
         dbsession.commit()
         for e in coupon_info['product_detail_img']:
-            utils.upload_file('app/static/img/' + open_id, e)
+            mq_utils.upload_file('app/static/img/' + open_id, e)
         dbsession.add(GoodsDetailImage(coupon_id = cp.id, img_url = "http://" +config['qiniu']['path']+'/'+ e))
         dbsession.commit()
         # 如果有图片上传到了服务器，但是最后提交到七牛云的时候，这些图片并没有被使用，删除这些图片
@@ -51,8 +50,8 @@ def main():
         body_str = body.decode('utf-8')
         body_dict = json.loads(body_str)
         if body_dict['name'] == "commitNewCouponInfo":
+            print("body_dict的内容: ",body_dict)
             commit_new_coupon_info(body_dict['data'])
-        ch.basic_ack(delivery_tag = method.delivery_tag)
 
     channel.basic_consume(queue='hello', on_message_callback=callback)
 

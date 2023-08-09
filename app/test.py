@@ -1,4 +1,6 @@
+import utils
 import threading
+from models.coupon_finder_db_model import Coupon
 
 # 创建 threadlocal 对象
 thread_local_data = threading.local()
@@ -15,6 +17,7 @@ def worker_thread(value):
     set_thread_local_data(value)
     result = get_thread_local_data()
     print(f"Thread {threading.current_thread().name}: {result}")
+    utils.get_current_ts()
 
 # 创建多个线程
 threads = []

@@ -4,7 +4,7 @@ import time
 import qrcode
 from io import BytesIO
 from flask import g
-from .models.coupon_finder_db_model import User, Category, Coupon
+from app.models.coupon_finder_db_model import User, Category, Coupon
 from qiniu import Auth, put_file
 from datetime import datetime
 
