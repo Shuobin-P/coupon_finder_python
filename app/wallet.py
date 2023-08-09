@@ -4,6 +4,7 @@ from . import utils
 from .models.coupon_finder_db_model import CardPackageCoupon, Coupon
 from sqlalchemy import desc
 wallet_bp = Blueprint("wallet", __name__, url_prefix="/wallet")
+
 @jwt_required()
 @wallet_bp.route('/getAvailableCoupons', methods=['GET'])
 def get_available_coupons():

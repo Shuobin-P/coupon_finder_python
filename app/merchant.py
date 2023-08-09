@@ -1,4 +1,4 @@
-import yaml,os, shutil
+import yaml,os,json
 from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt, create_access_token
 from . import utils
@@ -48,36 +48,15 @@ def commit_new_coupon_info():
     # TODO 由于需要上传图片到七牛云，如果网络比较慢，就会造成服务器响应速度慢，用户体验不好，可以使用
     # 异步进行处理
     open_id = get_jwt_identity()
-    coupon_info = request.get_json()
-    # 上传产品图片
-    if len(coupon_info['product_img']) != 0:
-        utils.upload_file('app/static/img/' + open_id, coupon_info['product_img'])
-    t = utils.get_current_ts()
-    if t < coupon_info['start_date']:
-        status = 0
-    elif t < coupon_info['expire_date']:
-        status = 1
-    elif t >= coupon_info['expire_date']:
-        status = 2
-    category_id = utils.get_coupon_category_id(coupon_info['category'])
-    merchant_id = utils.get_user_id(open_id)
-    product_img = "http://" +config['qiniu']['path']+'/'+ coupon_info['product_img']
-    cp = Coupon(
-            coupon_info['title'], status, product_img, 
-            coupon_info['description'], coupon_info['total_quantity'], 0,
-            0, coupon_info['total_quantity'], utils.format_ts(coupon_info['start_date']), 
-            utils.format_ts(coupon_info['expire_date']), category_id, coupon_info['original_price'], 
-            coupon_info['present_price'], merchant_id, utils.format_ts(utils.get_current_ts())
-        )
-    g.db_session.add(cp)
-    g.db_session.commit()
-    # 上传产品详细信息图片
-    for e in coupon_info['product_detail_img']:
-        utils.upload_file('app/static/img/' + open_id, e)
-        g.db_session.add(GoodsDetailImage(coupon_id = cp.id, img_url = "http://" +config['qiniu']['path']+'/'+ e))
-    g.db_session.commit()
-    # 如果有图片上传到了服务器，但是最后提交到七牛云的时候，这些图片并没有被使用，删除这些图片
-    shutil.rmtree('app/static/img/' + open_id)
+    channel = g.mq_connection.channel()
+    channel.queue_declare(queue='hello')
+    channel.basic_publish(
+        exchange='',
+        routing_key='hello',
+        body = json.dumps({
+            "name": "commitNewCouponInfo",
+            "data": request.get_json().update({"open_id": open_id})
+        }))
     return jsonify({
         "data": {
             "code": 1

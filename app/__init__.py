@@ -1,9 +1,10 @@
 import os
+import pika
 import redis
 import threading
 from flask import Flask, g
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker,scoped_session
+from sqlalchemy.orm import sessionmaker
 from flask_jwt_extended import JWTManager
 
 thread_local = threading.local()
@@ -43,9 +44,11 @@ def create_app(test_config=None):
         def before_request():
             get_redis()      
             get_db_session()
+            get_mq_connection()
         @app.teardown_request
         def after_requets(request):
             close_session()
+            close_mq_connection()
         return app
 
 def get_db_session():
@@ -64,3 +67,14 @@ def get_redis():
         # 创建 Redis 客户端连接
         g.redis_client = redis.StrictRedis(host='localhost', port=6379, db=2, password='123456')
     return g.redis_client
+
+def get_mq_connection():
+    if 'mq_connection' not in g:
+        g.mq_connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    return g.mq_connection
+
+def close_mq_connection():
+    mq_connection = getattr(g, 'mq_connection', None)
+    if mq_connection:
+        mq_connection.close()
+        g.mq_connection = None
