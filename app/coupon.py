@@ -11,10 +11,8 @@ coupon_bp = Blueprint("coupon", __name__, url_prefix="/coupon")
 
 # 请从coupon表中根据coupon的使用数量按照从多到少的顺序查询所有数据
 # 并将查询结果转换为json格式
-#@jwt_required()
 @coupon_bp.route('/getHotCoupons', methods=['GET'])
 def get_hot_drink_coupons():
-    #verify_jwt_in_request()
     page_num = int(request.args.get("pageNum", 1))
     page_size = int(request.args.get("pageSize", 10))
     now_time = datetime.now()
@@ -35,10 +33,8 @@ def get_hot_drink_coupons():
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in coupons]
     return {"data": coupons}
 
-@jwt_required()
 @coupon_bp.route('/getHotFoodCoupons', methods=['GET'])
 def get_hot_food_coupons():
-    verify_jwt_in_request()
     url = "http://localhost:5000/coupon/getHotCoupons"
     params = {}
     params['categoryId'] =  1
@@ -50,10 +46,8 @@ def get_hot_food_coupons():
     except requests.exceptions.RequestException as e:
         return jsonify({'error': '请求转发失败', 'message': str(e)}), 500
 
-#@jwt_required()
 @coupon_bp.route("/getHotOtherCoupons", methods=['GET'])
 def get_hot_other_coupons():
-    # verify_jwt_in_request()
     url = "http://localhost:5000/coupon/getHotCoupons"
     params = {}
     params['categoryId'] =  3

@@ -1,13 +1,10 @@
 import os
 import pika
 import redis
-import threading
 from flask import Flask, g
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from flask_jwt_extended import JWTManager
-
-thread_local = threading.local()
 
 def create_app(test_config=None):
     # create and configure the app

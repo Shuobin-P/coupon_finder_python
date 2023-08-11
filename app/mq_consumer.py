@@ -15,7 +15,6 @@ def main():
     channel.queue_declare(queue='hello')
     
     def commit_new_coupon_info(coupon_info):
-        print("coupon的内容：", coupon_info)
         open_id = coupon_info['open_id']
         if len(coupon_info['product_img']) != 0:
             mq_utils.upload_file('app/static/img/' + open_id, coupon_info['product_img'])
@@ -49,9 +48,10 @@ def main():
     def callback(ch, method, properties, body):
         body_str = body.decode('utf-8')
         body_dict = json.loads(body_str)
+        print("body_dict的内容: ",body_dict)
         if body_dict['name'] == "commitNewCouponInfo":
-            print("body_dict的内容: ",body_dict)
             commit_new_coupon_info(body_dict['data'])
+            ch.basic_ack(delivery_tag = method.delivery_tag)
 
     channel.basic_consume(queue='hello', on_message_callback=callback)
 
