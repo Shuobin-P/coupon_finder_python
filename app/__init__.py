@@ -24,7 +24,9 @@ def create_app(test_config=None):
         else:
             # load the test config if passed in
             app.config.from_mapping(test_config)
-        coupon_finder_engine = create_engine("mysql://root:123456@"+str(config['mysql']['host'])+"/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
+        coupon_finder_engine = create_engine(
+            "mysql://root:123456@" + 
+            str(config['mysql']['host']) + "/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
         # ensure the instance folder exists
         try:
             os.makedirs(app.instance_path)
@@ -66,7 +68,11 @@ def close_session():
 def get_redis():
     if 'redis_client' not in g:
         # 创建 Redis 客户端连接
-        g.redis_client = redis.StrictRedis(host=config['redis']['host'], port=config['redis']['port'], db=2, password='123456')
+        g.redis_client = redis.StrictRedis(
+            host=config['redis']['host'],
+            port=config['redis']['port'], 
+            db=2, 
+            password=config['redis']['password'])
     return g.redis_client
 
 def get_mq_connection():
