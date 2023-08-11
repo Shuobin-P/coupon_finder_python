@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token
 from .models.coupon_finder_db_model import User, UserRole
 
 login_bp = Blueprint("login", __name__, url_prefix="/login")
-with open('app\config.yml') as f:
+with open('app/config.yml') as f:
     config = yaml.safe_load(f)
 
 @login_bp.route('', methods=['POST'])

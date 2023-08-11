@@ -4,7 +4,7 @@ import sys
 import os,mq_utils,shutil, json, yaml
 from models.coupon_finder_db_model import Coupon, GoodsDetailImage
 
-with open('app\config.yml') as f:
+with open('app/config.yml') as f:
     config = yaml.safe_load(f)
 
 def main():

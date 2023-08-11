@@ -5,7 +5,7 @@ from . import utils
 from .models.coupon_finder_db_model import UserRole, Coupon, GoodsDetailImage
 
 merchant_bp = Blueprint("merchant", __name__, url_prefix="/merchant")
-with open('app\config.yml') as f:
+with open('app/config.yml') as f:
     config = yaml.safe_load(f)
 
 @jwt_required()

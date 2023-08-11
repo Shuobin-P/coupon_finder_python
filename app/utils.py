@@ -8,7 +8,7 @@ from app.models.coupon_finder_db_model import User, Category, Coupon
 from qiniu import Auth, put_file
 from datetime import datetime
 
-with open('app\config.yml') as f:
+with open('app/config.yml') as f:
     config = yaml.safe_load(f)
 
 def get_coupon_category_id(keyword: str) -> int:
