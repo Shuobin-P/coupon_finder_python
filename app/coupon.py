@@ -35,7 +35,7 @@ def get_hot_drink_coupons():
 
 @coupon_bp.route('/getHotFoodCoupons', methods=['GET'])
 def get_hot_food_coupons():
-    url = "http://localhost:5000/coupon/getHotCoupons"
+    url = "http://172.17.0.1:5000/coupon/getHotCoupons"
     params = {}
     params['categoryId'] =  1
     params.update(request.args)
@@ -48,7 +48,7 @@ def get_hot_food_coupons():
 
 @coupon_bp.route("/getHotOtherCoupons", methods=['GET'])
 def get_hot_other_coupons():
-    url = "http://localhost:5000/coupon/getHotCoupons"
+    url = "http://172.17.0.1:5000/coupon/getHotCoupons"
     params = {}
     params['categoryId'] =  3
     params.update(request.args)

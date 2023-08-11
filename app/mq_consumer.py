@@ -8,7 +8,7 @@ with open('app/config.yml') as f:
     config = yaml.safe_load(f)
 
 def main():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='172.17.0.1'))
     dbsession = mq_utils.get_db_session()
     channel = connection.channel()
 

@@ -20,7 +20,7 @@ def create_app(test_config=None):
         else:
             # load the test config if passed in
             app.config.from_mapping(test_config)
-        coupon_finder_engine = create_engine("mysql://root:123456@localhost/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
+        coupon_finder_engine = create_engine("mysql://root:123456@172.17.0.1/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
         # ensure the instance folder exists
         try:
             os.makedirs(app.instance_path)
@@ -62,12 +62,12 @@ def close_session():
 def get_redis():
     if 'redis_client' not in g:
         # 创建 Redis 客户端连接
-        g.redis_client = redis.StrictRedis(host='localhost', port=6379, db=2, password='123456')
+        g.redis_client = redis.StrictRedis(host='172.17.0.1', port=6379, db=2, password='123456')
     return g.redis_client
 
 def get_mq_connection():
     if 'mq_connection' not in g:
-        g.mq_connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        g.mq_connection = pika.BlockingConnection(pika.ConnectionParameters('172.17.0.1'))
     return g.mq_connection
 
 def close_mq_connection():
