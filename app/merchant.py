@@ -2,7 +2,7 @@ import yaml,os,json
 from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt, create_access_token
 from . import utils
-from .models.coupon_finder_db_model import UserRole, Coupon, GoodsDetailImage
+from .models.coupon_finder_db_model import UserRole, Coupon
 
 merchant_bp = Blueprint("merchant", __name__, url_prefix="/merchant")
 with open('app/config.yml') as f:
