@@ -77,7 +77,7 @@ def get_redis():
 
 def get_mq_connection():
     if 'mq_connection' not in g:
-        credentials = pika.PlainCredentials(config['rabbitmq']['username'], config['rabbitmq']['password'])
+        credentials = pika.PlainCredentials(config['rabbitmq']['username'], str(config['rabbitmq']['password']))
         g.mq_connection = pika.BlockingConnection(pika.ConnectionParameters(config['rabbitmq']['host'],credentials=credentials))
     return g.mq_connection
 
