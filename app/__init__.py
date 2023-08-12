@@ -71,7 +71,8 @@ def get_redis():
 
 def get_mq_connection():
     if 'mq_connection' not in g:
-        g.mq_connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        credentials = pika.PlainCredentials(config['rabbitmq']['username'], str(config['rabbitmq']['password']))
+        g.mq_connection = pika.BlockingConnection(pika.ConnectionParameters('localhost',credentials=credentials))
     return g.mq_connection
 
 def close_mq_connection():
