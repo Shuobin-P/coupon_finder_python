@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from models.coupon_finder_db_model import User, Category
 from qiniu import Auth, put_file
 
-with open('app/config.yml') as f:
+with open('./config.yml') as f:
     config = yaml.safe_load(f)
 # 创建 threadlocal 对象
 thread_local_data = threading.local()
