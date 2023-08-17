@@ -62,6 +62,9 @@ def get_hot_other_coupons():
 @jwt_required()
 @coupon_bp.route("/getCouponInfo", methods=['GET'])
 def get_coupon_info():
+    """
+        返回优惠券的详细信息，包括详细图片。
+    """
     # 从数据库查询到相关信息之后，需要处理一下数据格式，然后返回给前端
     verify_jwt_in_request()
     query = g.db_session.query(Coupon).filter(
@@ -90,6 +93,9 @@ def get_coupon_info():
 @jwt_required()
 @coupon_bp.route("/getCoupon", methods=['GET'])
 def get_coupon():
+    """
+        领取优惠券到卡包
+    """
     # 领取优惠券会有超卖问题。
     # 原思路：如果优惠券数量>=1，该列的值减1。由于每条sql都是一个事务，然后根据事务的隔离级别
     # 不管是哪种都不会发生 脏写的问题，但是这里不是脏写问题。
@@ -140,6 +146,11 @@ def get_coupon():
 @jwt_required()
 @coupon_bp.route("/findCoupon", methods=['GET'])
 def find_coupon():
+    """
+        模糊查询优惠券
+    """
+    # TODO 待优化：如果优惠券数量多，那么模糊查询的效率会很低。最差可达到O(N*N)，因此，可以考虑使用全文检索来
+    # 替代sql的模糊查询
     verify_jwt_in_request()
     query_keyword = request.args.get("queryInfo")
     result = g.db_session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()

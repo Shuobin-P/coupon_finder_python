@@ -45,8 +45,9 @@ def upload():
 @merchant_bp.route('/commitNewCouponInfo', methods=['POST'])
 def commit_new_coupon_info():
     verify_jwt_in_request()
-    # TODO 由于需要上传图片到七牛云，如果网络比较慢，就会造成服务器响应速度慢，用户体验不好，可以使用
-    # 异步进行处理
+    # 由于需要上传图片到七牛云，如果网络比较慢，就会造成服务器响应速度慢，用户体验不好，可以使用
+    # 异步进行处理。
+    # FIXME 但是异步，多线程技术也能处理，你为什么要使用队列呢？z
     open_id = get_jwt_identity()
     channel = g.mq_connection.channel()
     channel.queue_declare(queue='hello')
