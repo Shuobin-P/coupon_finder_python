@@ -1,11 +1,11 @@
 from . import utils
 from flask import Blueprint, request, jsonify, g
-from sqlalchemy import and_
+from sqlalchemy import and_,text
 from datetime import datetime
 from .models.coupon_finder_db_model import Coupon, GoodsDetailImage, User, CardPackageCoupon
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 import requests
-
+import time
 
 coupon_bp = Blueprint("coupon", __name__, url_prefix="/coupon")
 
@@ -142,9 +142,12 @@ def get_coupon():
 def find_coupon():
     verify_jwt_in_request()
     query_keyword = request.args.get("queryInfo")
+    before = time.time()
     result = g.db_session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()
+    after = time.time()
+    print("查询耗时： ", after - before)
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in result]
-    return jsonify({"data": coupons})
+    return jsonify({"data": coupons,"time_gap": after - before})
 
 @coupon_bp.route("/generateQRCode", methods=['GET'])
 def generate_qrcode():
