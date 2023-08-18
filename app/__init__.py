@@ -66,7 +66,7 @@ def close_session():
 def get_redis():
     if 'redis_client' not in g:
         # 创建 Redis 客户端连接
-        g.redis_client = redis.StrictRedis(host=config['redis']['host'], port=config['redis']['port'], db=2, password=config['redis']['password'])
+        g.redis_client = redis.StrictRedis(host=config['redis']['winServer'], port=config['redis']['port'], db=2, password=config['redis']['password'])
     return g.redis_client
 
 def get_mq_connection():

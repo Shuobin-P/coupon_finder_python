@@ -1,4 +1,4 @@
-from . import utils
+from . import utils,coupon_finder_engine
 from flask import Blueprint, request, jsonify, g
 from sqlalchemy import and_,text
 from datetime import datetime
@@ -141,9 +141,12 @@ def get_coupon():
 @coupon_bp.route("/findCoupon", methods=['GET'])
 def find_coupon():
     verify_jwt_in_request()
-    query_keyword = request.args.get("queryInfo")
+    query_keyword = str(request.args.get("queryInfo"))
+    sql_query = text(f"SELECT * FROM coupon WHERE MATCH(title) AGAINST(\"{query_keyword}\")")
+    # 执行查询
     before = time.time()
-    result = g.db_session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()
+    #result = g.db_session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()
+    result = coupon_finder_engine.connect().execute(sql_query)
     after = time.time()
     print("查询耗时： ", after - before)
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in result]
