@@ -5,29 +5,31 @@ import qrcode
 from io import BytesIO
 from flask import g
 from app.models.coupon_finder_db_model import User, Category, Coupon
+from sqlalchemy.orm import sessionmaker
 from qiniu import Auth, put_file
 from datetime import datetime
+from . import coupon_finder_engine
 
 with open('app\config.yml') as f:
     config = yaml.safe_load(f)
 
 def get_coupon_category_id(keyword: str) -> int:
-    card_package_id = g.db_session.query(Category).filter(Category.name == keyword).first().id
+    card_package_id = get_db_session().query(Category).filter(Category.name == keyword).first().id
     return card_package_id
 
 def get_card_package_id(open_id: str) -> int : 
-    card_package_id = g.db_session.query(User.card_package_id).filter(User.open_id == open_id).first()
+    card_package_id = get_db_session().query(User.card_package_id).filter(User.open_id == open_id).first()
     return int(card_package_id[0])
 
 def get_user_id(open_id: str) -> int:
-    user_id = g.db_session.query(User.id).filter(User.open_id == open_id).first()
+    user_id = get_db_session().query(User.id).filter(User.open_id == open_id).first()
     return int(user_id[0])
 
 def get_released_coupon_merchant_id(coupon_id: int) -> int:
     '''
         发布优惠券的商家的用户ID
     '''
-    merchant_id = g.db_session.query(Coupon.merchant_id).filter(Coupon.id == int(coupon_id)).first()[0]
+    merchant_id = get_db_session().query(Coupon.merchant_id).filter(Coupon.id == int(coupon_id)).first()[0]
     return int(merchant_id)
     
 def generate_random_filename():
@@ -78,3 +80,9 @@ def get_qrcode_byte_stream(data) -> bytes:
     img.save(img_byte_array)
     img_byte_array.seek(0)
     return img_byte_array
+
+
+def get_db_session():
+    if 'db_session' not in g:
+        g.db_session = sessionmaker(bind=coupon_finder_engine)()
+    return g.db_session

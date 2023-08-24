@@ -2,7 +2,7 @@ import yaml,os,json
 from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt, create_access_token
 from . import utils
-from .models.coupon_finder_db_model import UserRole, Coupon, GoodsDetailImage
+from .models.coupon_finder_db_model import UserRole, Coupon
 
 merchant_bp = Blueprint("merchant", __name__, url_prefix="/merchant")
 with open('app\config.yml') as f:
@@ -14,7 +14,7 @@ def verify():
     key = request.args.get("key", 0)
     if int(key) == int(config['mini']['merchantSecret']):
         open_id = get_jwt_identity()
-        g.db_session.add(UserRole(user_id=utils.get_user_id(open_id), role_id=1))
+        utils.get_db_session().add(UserRole(user_id=utils.get_user_id(open_id), role_id=1))
         claims = get_jwt()
         claims.update({"isMerchant": True})
         access_token = create_access_token(identity=open_id, additional_claims=claims)
@@ -45,7 +45,7 @@ def upload():
 @merchant_bp.route('/commitNewCouponInfo', methods=['POST'])
 def commit_new_coupon_info():
     verify_jwt_in_request()
-    # TODO 由于需要上传图片到七牛云，如果网络比较慢，就会造成服务器响应速度慢，用户体验不好，可以使用
+    # 由于需要上传图片到七牛云，如果网络比较慢，就会造成服务器响应速度慢，用户体验不好，可以使用
     # 异步进行处理
     open_id = get_jwt_identity()
     channel = g.mq_connection.channel()
@@ -72,47 +72,57 @@ def commit_new_coupon_info():
 @merchant_bp.route('/getUpcomingCoupons', methods=['GET'])
 def get_upcoming_coupons():
     verify_jwt_in_request()
+    page_num = int(request.args.get("upcomingCouponPageNum", 1))
+    page_size = int(request.args.get("pageSize", 10))
+    offset = (page_num - 1) * page_size
     open_id = get_jwt_identity()
     merchant_id = utils.get_user_id(open_id)
     current_date = utils.format_ts(utils.get_current_ts())
-    coupons = g.db_session.query(Coupon).filter(
+    query = utils.get_db_session().query(Coupon).filter(
         Coupon.merchant_id == merchant_id, 
         Coupon.start_date > current_date,
-        ).all()
+        )
+    coupons = query.offset(offset).limit(page_size).all()
     result = [{k: v for k,v in coupon.__dict__.items() if k != '_sa_instance_state'} for coupon in coupons]
     return jsonify({
         "data": result
     })
     
-
 @jwt_required()
 @merchant_bp.route('/getReleasedValidCoupons', methods=['GET'])
 def get_released_valid_coupons():
     verify_jwt_in_request()
+    page_num = int(request.args.get("validCouponPageNum", 1))
+    page_size = int(request.args.get("pageSize", 10))
+    offset = (page_num - 1) * page_size
     open_id = get_jwt_identity()
     merchant_id = utils.get_user_id(open_id)
     current_date = utils.format_ts(utils.get_current_ts())
-    coupons = g.db_session.query(Coupon).filter(
+    query = utils.get_db_session().query(Coupon).filter(
         Coupon.merchant_id == merchant_id, 
         Coupon.start_date <= current_date,
         Coupon.expire_date > current_date
-        ).all()
+        )
+    coupons = query.offset(offset).limit(page_size).all()
     result = [{k: v for k,v in coupon.__dict__.items() if k != '_sa_instance_state'} for coupon in coupons]
     return jsonify({
         "data": result
     })
-
 
 @jwt_required()
 @merchant_bp.route('/getExpiredCoupon', methods=['GET'])
 def get_expired_coupon():
     verify_jwt_in_request()
     # 获得该用户已发布的过期优惠券，即当前时间大于优惠券过期时间
+    page_num = int(request.args.get("expiredCouponPageNum", 1))
+    page_size = int(request.args.get("pageSize", 10))
+    offset = (page_num - 1) * page_size
     open_id = get_jwt_identity()
     merchant_id = utils.get_user_id(open_id)
-    coupons = g.db_session.query(Coupon).filter(
+    query = utils.get_db_session().query(Coupon).filter(
         Coupon.merchant_id == merchant_id, Coupon.expire_date <= utils.format_ts(utils.get_current_ts())
-        ).all()
+        )
+    coupons = query.offset(offset).limit(page_size).all()
     result = [{k: v for k,v in coupon.__dict__.items() if k != '_sa_instance_state'} for coupon in coupons]
     return jsonify({
         "data": result

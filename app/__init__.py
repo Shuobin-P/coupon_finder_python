@@ -14,6 +14,7 @@ def create_app(test_config=None):
     # create and configure the app
         global coupon_finder_engine
         global redis
+        global redis_pool
         app = Flask(__name__, instance_relative_config=True)
         app.config.from_mapping(
             SECRET_KEY='dev',
@@ -25,6 +26,9 @@ def create_app(test_config=None):
             # load the test config if passed in
             app.config.from_mapping(test_config)
         coupon_finder_engine = create_engine("mysql://root:123456@localhost/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
+        redis_pool = redis.ConnectionPool(
+            host=config['redis']['winServer'], port=config['redis']['port'], db=2, max_connections=10,password=config['redis']['password']
+        )
         # ensure the instance folder exists
         try:
             os.makedirs(app.instance_path)
@@ -43,32 +47,20 @@ def create_app(test_config=None):
 
         @app.before_request
         def before_request():
-            get_redis()      
-            get_db_session()
+            # FIXME 这样处理毫无必要，不会在性能上有所提升，在创建数据库连接池之后，不需要手动进行管理。
             get_mq_connection()
+
+        @app.after_request
+        def after_request(response):
+            # 在响应发送前设置响应头
+            response.headers['X-Custom-Header'] = 'Hello'
+            return response
+        
         @app.teardown_request
         def after_requets(request):
-            close_session()
             close_mq_connection()
         return app
-
-def get_db_session():
-    if 'db_session' not in g:
-        g.db_session = sessionmaker(bind=coupon_finder_engine)()
-    return g.db_session
-
-def close_session():
-    db_session = getattr(g, 'db_session', None)
-    if db_session:
-        db_session.close()
-        g.db_session = None
      
-def get_redis():
-    if 'redis_client' not in g:
-        # 创建 Redis 客户端连接
-        g.redis_client = redis.StrictRedis(host=config['redis']['winServer'], port=config['redis']['port'], db=2, password=config['redis']['password'])
-    return g.redis_client
-
 def get_mq_connection():
     if 'mq_connection' not in g:
         credentials = pika.PlainCredentials(config['rabbitmq']['username'], str(config['rabbitmq']['password']))
