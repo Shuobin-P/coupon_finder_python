@@ -11,7 +11,7 @@ with open('app\config.yml') as f:
     config = yaml.safe_load(f)
 
 def create_app(test_config=None):
-    # create and configure the app
+        # create and configure the app
         global coupon_finder_engine
         global redis
         global redis_pool
