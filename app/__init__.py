@@ -4,7 +4,6 @@ import redis
 import yaml
 from flask import Flask, g
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from flask_jwt_extended import JWTManager
 
 with open('app\config.yml') as f:

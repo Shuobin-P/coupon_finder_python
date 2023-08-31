@@ -61,11 +61,11 @@ def get_hot_other_coupons():
     except requests.exceptions.RequestException as e:
         return jsonify({'error': '请求转发失败', 'message': str(e)}), 500
 
-@jwt_required()
+#@jwt_required()
 @coupon_bp.route("/getCouponInfo", methods=['GET'])
 def get_coupon_info():
     # 从数据库查询到相关信息之后，需要处理一下数据格式，然后返回给前端
-    verify_jwt_in_request()
+    #verify_jwt_in_request()
     query = utils.get_db_session().query(Coupon).filter(
         and_(
             Coupon.id == request.args.get("id")
