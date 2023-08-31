@@ -24,7 +24,7 @@ def create_app(test_config=None):
         else:
             # load the test config if passed in
             app.config.from_mapping(test_config)
-        coupon_finder_engine = create_engine("mysql://root:123456@localhost/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
+        coupon_finder_engine = create_engine("mysql://"+config['mysql']['username']+":"+config['mysql']['password']+"@"+str(config['mysql']['linuxServer'])+"/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
         redis_pool = redis.ConnectionPool(
             host=config['redis']['linuxServer'], port=config['redis']['port'], db=2, max_connections=10,password=config['redis']['password']
         )
