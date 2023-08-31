@@ -11,7 +11,7 @@ with open('./config.yml') as f:
     config = yaml.safe_load(f)
 # 创建 threadlocal 对象
 thread_local_data = threading.local()
-coupon_finder_engine = create_engine("mysql://root:123456@"+config['mysql']['host']+"/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
+coupon_finder_engine = create_engine("mysql://root:123456@"+config['mysql']['linuxServer']+"/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
 
 def get_db_session():
     db_session = getattr(thread_local_data, 'db_session', None)

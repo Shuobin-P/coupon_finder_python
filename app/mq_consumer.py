@@ -9,7 +9,7 @@ with open('./config.yml') as f:
 
 def main():
     credentials = pika.PlainCredentials(config['rabbitmq']['username'], str(config['rabbitmq']['password']))
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=config['rabbitmq']['host'], credentials=credentials))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=config['rabbitmq']['linuxServer'], credentials=credentials))
     dbsession = mq_utils.get_db_session()
     channel = connection.channel()
 

@@ -1,11 +1,11 @@
-from . import utils
+from . import utils,coupon_finder_engine
 from flask import Blueprint, request, jsonify, g
-from sqlalchemy import and_
+from sqlalchemy import and_,text
 from datetime import datetime
 from .models.coupon_finder_db_model import Coupon, GoodsDetailImage, User, CardPackageCoupon
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 import requests
-
+import time
 
 coupon_bp = Blueprint("coupon", __name__, url_prefix="/coupon")
 
@@ -17,10 +17,10 @@ def get_hot_drink_coupons():
     page_size = int(request.args.get("pageSize", 10))
     now_time = datetime.now()
     category_id = request.args.get("categoryId", 2)
-    query = g.db_session.query(Coupon).filter(
+    query = utils.get_db_session().query(Coupon).filter(
         and_(
             Coupon.category_id == category_id,
-            Coupon.total_quantity - Coupon.used_quantity - Coupon.collected_quantity > 0,
+            Coupon.remaining_quantity > 0,
             now_time >= Coupon.start_date, 
             now_time <= Coupon.expire_date
         )
@@ -29,9 +29,11 @@ def get_hot_drink_coupons():
 
     # 查询数据
     offset = (page_num - 1) * page_size
+    before = time.time()
     coupons = query.offset(offset).limit(page_size).all()
+    after = time.time()
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in coupons]
-    return {"data": coupons}
+    return {"data": coupons,"time_cost": after - before}
 
 @coupon_bp.route('/getHotFoodCoupons', methods=['GET'])
 def get_hot_food_coupons():
@@ -59,15 +61,15 @@ def get_hot_other_coupons():
     except requests.exceptions.RequestException as e:
         return jsonify({'error': '请求转发失败', 'message': str(e)}), 500
 
-@jwt_required()
+#@jwt_required()
 @coupon_bp.route("/getCouponInfo", methods=['GET'])
 def get_coupon_info():
     """
         返回优惠券的详细信息，包括详细图片。
     """
     # 从数据库查询到相关信息之后，需要处理一下数据格式，然后返回给前端
-    verify_jwt_in_request()
-    query = g.db_session.query(Coupon).filter(
+    #verify_jwt_in_request()
+    query = utils.get_db_session().query(Coupon).filter(
         and_(
             Coupon.id == request.args.get("id")
         ))
@@ -79,7 +81,7 @@ def get_coupon_info():
                     ]
     coupon_info[0].update({"start_date" : int(coupon_info[0].get("start_date").timestamp()) * 1000})
     coupon_info[0].update({"expire_date" : int(coupon_info[0].get("expire_date").timestamp()) * 1000})
-    imgs_list = g.db_session.query(GoodsDetailImage.img_url).filter(
+    imgs_list = utils.get_db_session().query(GoodsDetailImage.img_url).filter(
         and_(
                 GoodsDetailImage.coupon_id == request.args.get("id")
             )
@@ -104,16 +106,16 @@ def get_coupon():
     coupon_id = request.args.get("couponId")
     open_id = get_jwt_identity()
     # 每种优惠券，每个用户只能领取一张
-    card_package_id = g.db_session.query(User.card_package_id).filter(User.open_id == open_id).first()[0]
+    card_package_id = utils.get_db_session().query(User.card_package_id).filter(User.open_id == open_id).first()[0]
     print("卡包ID： ", card_package_id)
-    result = g.db_session.query(CardPackageCoupon).filter_by(
+    result = utils.get_db_session().query(CardPackageCoupon).filter_by(
         card_package_id = card_package_id,
         coupon_id = coupon_id,
         status = 1
         ).first()
     if result is not None:
         return jsonify({"msg": "已经领取过了"}), 400
-    g.db_session.commit()
+    utils.get_db_session().commit()
     # 我：我查询到优惠券的数量大于0，先给这个记录上锁，以防止出现并发访问，再减去优惠券的数量
     # 但是如果大多数情况下，不会出现并发访问，那增加锁，就会降低性能。如何处理出现并发访问的时候带来的问题呢？
     # 出现并发访问的问题，就是优惠券的数量与查询时不一致，因此，执行update的时候，判断语句需要加上优惠券的数量
@@ -128,15 +130,15 @@ def get_coupon():
     #     g.db_session.query(CardPackageCoupon).add_entity(CardPackageCoupon(card_package_id, coupon_id, 1))
     #     g.db_session.commit()
     while(True):
-        coupon = g.db_session.query(Coupon).filter(Coupon.id == coupon_id).first()
+        coupon = utils.get_db_session().query(Coupon).filter(Coupon.id == coupon_id).first()
         if(coupon.remaining_quantity > 0):
-            update_cnt = g.db_session.query(Coupon)\
+            update_cnt = utils.get_db_session().query(Coupon)\
                 .filter(Coupon.id == coupon_id, Coupon.remaining_quantity == coupon.remaining_quantity)\
                 .update({
                             "collected_quantity": coupon.collected_quantity + 1,
                             "remaining_quantity": coupon.remaining_quantity - 1
                         }) > 0
-            g.db_session.commit()
+            utils.get_db_session().commit()
             if(update_cnt > 0):
                 break
         else:
@@ -152,10 +154,16 @@ def find_coupon():
     # TODO 待优化：如果优惠券数量多，那么模糊查询的效率会很低。最差可达到O(N*N)，因此，可以考虑使用全文检索来
     # 替代sql的模糊查询
     verify_jwt_in_request()
-    query_keyword = request.args.get("queryInfo")
-    result = g.db_session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()
+    query_keyword = str(request.args.get("queryInfo"))
+    sql_query = text(f"SELECT * FROM coupon WHERE MATCH(title) AGAINST(\"{query_keyword}\")")
+    # 执行查询
+    before = time.time()
+    #result = g.db_session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()
+    result = coupon_finder_engine.connect().execute(sql_query)
+    after = time.time()
+    print("查询耗时： ", after - before)
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in result]
-    return jsonify({"data": coupons})
+    return jsonify({"data": coupons,"time_gap": after - before})
 
 @coupon_bp.route("/generateQRCode", methods=['GET'])
 def generate_qrcode():
@@ -177,7 +185,7 @@ def use_coupon():
     # 3. 判断该优惠券是否过期
     if utils.get_user_id(open_id) != utils.get_released_coupon_merchant_id(coupon_id):
         return jsonify({"msg": "该优惠券不是该老板发布的", "code": 2 }), 400
-    query_result = g.db_session.query(CardPackageCoupon.status, CardPackageCoupon.id).filter(
+    query_result = utils.get_db_session().query(CardPackageCoupon.status, CardPackageCoupon.id).filter(
         CardPackageCoupon.card_package_id == wallet_id,
         CardPackageCoupon.coupon_id == coupon_id,
     ).first()
@@ -187,7 +195,7 @@ def use_coupon():
         return jsonify({"msg": "该优惠券已经使用过了", "code": 3 }), 400
     elif status == 3:
         return jsonify({"msg": "该优惠券已经过期了", "code": 4 }), 400
-    expire_date = g.db_session.query(Coupon.expire_date).filter(
+    expire_date = utils.get_db_session().query(Coupon.expire_date).filter(
         Coupon.id == coupon_id
     ).first()[0]
     expire_date = datetime.strptime(str(expire_date), "%Y-%m-%d %H:%M:%S")
@@ -196,14 +204,14 @@ def use_coupon():
     # 优惠券合法，消耗该优惠券
     # 在卡包 优惠券 表中，将该优惠券的状态改为已使用
     # 在coupon表中，将该优惠券的已使用数量加1，将剩余数量减1，领取数量-1
-    g.db_session.query(CardPackageCoupon).filter(
+    utils.get_db_session().query(CardPackageCoupon).filter(
         CardPackageCoupon.id == card_package_coupon_id
     ).update({
         "status": 2,
         "used_ts": datetime.now().strftime("%Y-%m-%d")
     })
-    g.db_session.commit()
-    g.db_session.query(Coupon).filter(
+    utils.get_db_session().commit()
+    utils.get_db_session().query(Coupon).filter(
         Coupon.id == coupon_id
     ).update({
         "used_quantity": Coupon.used_quantity + 1,

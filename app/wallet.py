@@ -13,11 +13,11 @@ def get_available_coupons():
     verify_jwt_in_request()
     open_id = get_jwt_identity()
     card_package_id = utils.get_card_package_id(open_id)
-    ids = g.db_session.query(CardPackageCoupon.coupon_id).filter_by(card_package_id = card_package_id, status = 1).all()
+    ids = utils.get_db_session().query(CardPackageCoupon.coupon_id).filter_by(card_package_id = card_package_id, status = 1).all()
     id_list = []
     for item in ids:
         id_list.append(item[0])
-    result = g.db_session.query(Coupon).filter(Coupon.id.in_(id_list)).all()
+    result = utils.get_db_session().query(Coupon).filter(Coupon.id.in_(id_list)).all()
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in result]
     return jsonify({"data": coupons})
 
@@ -27,10 +27,10 @@ def get_coupon_used_history():
     verify_jwt_in_request()
     open_id = get_jwt_identity()
     card_package_id = utils.get_card_package_id(open_id)
-    sub_query = g.db_session.query(CardPackageCoupon)\
+    sub_query = utils.get_db_session().query(CardPackageCoupon)\
             .filter_by(card_package_id = card_package_id, status = 2)\
             .order_by(desc(CardPackageCoupon.used_ts)).subquery()
-    result = g.db_session.query(
+    result = utils.get_db_session().query(
         Coupon.id,Coupon.title, Coupon.description, Coupon.picture_url, 
         Coupon.original_price, Coupon.present_price, sub_query.c.used_ts)\
         .outerjoin(Coupon, sub_query.c.coupon_id == Coupon.id)
