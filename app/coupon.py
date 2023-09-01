@@ -147,7 +147,6 @@ def find_coupon():
     sql_query = text(f"SELECT * FROM coupon WHERE MATCH(title) AGAINST(\"{query_keyword}\")")
     # 执行查询
     before = time.time()
-    #result = g.db_session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()
     result = coupon_finder_engine.connect().execute(sql_query)
     after = time.time()
     print("查询耗时： ", after - before)
