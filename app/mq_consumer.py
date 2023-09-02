@@ -18,7 +18,7 @@ def main():
     def commit_new_coupon_info(coupon_info):
         open_id = coupon_info['open_id']
         if len(coupon_info['product_img']) != 0:
-            mq_utils.upload_file('./static/img/' + open_id, coupon_info['product_img'])
+            mq_utils.upload_file('../static/img/' + open_id, coupon_info['product_img'])
         t = mq_utils.get_current_ts()
         if t < coupon_info['start_date']:
             status = 0
