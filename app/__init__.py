@@ -6,7 +6,7 @@ from flask import Flask, g
 from sqlalchemy import create_engine
 from flask_jwt_extended import JWTManager
 
-with open('app\config.yml') as f:
+with open('app/config.yml') as f:
     config = yaml.safe_load(f)
 
 def create_app(test_config=None):
@@ -24,9 +24,9 @@ def create_app(test_config=None):
         else:
             # load the test config if passed in
             app.config.from_mapping(test_config)
-        coupon_finder_engine = create_engine("mysql://root:123456@localhost/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
+        coupon_finder_engine = create_engine("mysql://"+config['mysql']['username']+":"+str(config['mysql']['password'])+"@"+str(config['mysql']['winServer'])+"/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
         redis_pool = redis.ConnectionPool(
-            host=config['redis']['winServer'], port=config['redis']['port'], db=2, max_connections=10,password=config['redis']['password']
+            host=config['redis']['winServer'], port=config['redis']['port'], db=2, max_connections=10, password=config['redis']['password']
         )
         # ensure the instance folder exists
         try:
@@ -63,7 +63,7 @@ def create_app(test_config=None):
 def get_mq_connection():
     if 'mq_connection' not in g:
         credentials = pika.PlainCredentials(config['rabbitmq']['username'], str(config['rabbitmq']['password']))
-        g.mq_connection = pika.BlockingConnection(pika.ConnectionParameters('localhost',credentials=credentials))
+        g.mq_connection = pika.BlockingConnection(pika.ConnectionParameters(config['rabbitmq']['winServer'],credentials=credentials))
     return g.mq_connection
 
 def close_mq_connection():
