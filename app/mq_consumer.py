@@ -40,11 +40,11 @@ def main():
         dbsession.add(cp)
         dbsession.commit()
         for e in coupon_info['product_detail_img']:
-            mq_utils.upload_file('./static/img/' + open_id, e)
+            mq_utils.upload_file('../static/img/' + open_id, e)
         dbsession.add(GoodsDetailImage(coupon_id = cp.id, img_url = "http://" +config['qiniu']['path']+'/'+ e))
         dbsession.commit()
         # 如果有图片上传到了服务器，但是最后提交到七牛云的时候，这些图片并没有被使用，删除这些图片
-        shutil.rmtree('./static/img/' + open_id)
+        shutil.rmtree('../static/img/' + open_id)
         mq_utils.close_session()
 
     def callback(ch, method, properties, body):
