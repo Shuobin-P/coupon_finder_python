@@ -1,22 +1,19 @@
-import copy
-import yaml
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from models.coupon_finder_db_model import Coupon
+import threading
 
-with open('app/config.yml') as f:
-    config = yaml.safe_load(f)
+# 定义一个线程执行的任务函数
+def print_numbers():
+    for i in range(1, 6):
+        print(f"Thread {threading.current_thread().name}: {i}")
 
-coupon_finder_engine = create_engine(
-            "mysql://root:123456@localhost" + "/coupon_finder?charset=utf8",pool_size=10, max_overflow=20)
+# 创建10个线程并启动它们
+threads = []
+for i in range(10):
+    thread = threading.Thread(target=print_numbers)
+    threads.append(thread)
+    thread.start()
 
-db_session = sessionmaker(bind=coupon_finder_engine)()
-record = db_session.query(Coupon).filter(Coupon.id == 41).one()
-record_copy = copy.deepcopy(record)
-record_copy.title = "全文索引测试数据"
-db_session.close()
-for index in range(63, 100):
-    record_copy.id = index
-    db_session.add(record_copy)
-    db_session.commit()
-db_session.close()
+# 等待所有线程完成
+for thread in threads:
+    thread.join()
+
+print("All threads have finished.")
