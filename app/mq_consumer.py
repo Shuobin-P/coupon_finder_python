@@ -34,7 +34,8 @@ def main():
                 coupon_info['description'], coupon_info['total_quantity'], 0,
                 0, coupon_info['total_quantity'], mq_utils.format_ts(coupon_info['start_date']), 
                 mq_utils.format_ts(coupon_info['expire_date']), category_id, coupon_info['original_price'], 
-                coupon_info['present_price'], merchant_id, mq_utils.format_ts(mq_utils.get_current_ts())
+                coupon_info['present_price'], merchant_id, mq_utils.format_ts(mq_utils.get_current_ts()),
+                shop_id=0
             )
         dbsession.add(cp)
         dbsession.commit()

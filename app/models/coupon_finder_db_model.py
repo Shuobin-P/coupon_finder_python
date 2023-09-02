@@ -20,10 +20,11 @@ class Coupon(Base):
     present_price = Column(DECIMAL)
     merchant_id = Column(Integer)
     release_ts = Column(TIMESTAMP)
+    shop_id = Column(Integer)
 
 
     
-    def __init__(self, title, status, picture_url, description, total_quantity, used_quantity, collected_quantity, remaining_quantity, start_date, expire_date, category_id, original_price, present_price, merchant_id, release_ts):
+    def __init__(self, title, status, picture_url, description, total_quantity, used_quantity, collected_quantity, remaining_quantity, start_date, expire_date, category_id, original_price, present_price, merchant_id, release_ts, shop_id):
         self.title = title
         self.status =  status
         self.picture_url = picture_url
@@ -39,6 +40,7 @@ class Coupon(Base):
         self.present_price = present_price
         self.merchant_id = merchant_id
         self.release_ts = release_ts
+        self.shop_id = shop_id
 
 class GoodsDetailImage(Base):
     __tablename__ = "goods_detail_image"
