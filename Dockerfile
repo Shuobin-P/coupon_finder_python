@@ -10,7 +10,7 @@ RUN apt-get update && \
     chmod +x /app/set_time.sh && \
     /app/set_time.sh && \
     pip install -r requirements.txt
-
+    
 ENV FLASK_APP=app/__init__.py
 # 暴露应用程序的端口（Flask 默认是 5000 端口）
 EXPOSE 5000
