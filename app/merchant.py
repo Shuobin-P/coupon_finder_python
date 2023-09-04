@@ -50,11 +50,8 @@ def commit_new_coupon_info():
     open_id = get_jwt_identity()
     channel = g.mq_connection.channel()
     channel.queue_declare(queue='hello')
-    print("获得request的json数据", request.get_json())
     tmp = request.get_json()
     tmp.update({"open_id": open_id})
-    print("tmp的类型：", type(tmp))
-    print("处理之后呢？：", tmp)
     channel.basic_publish(
         exchange='',
         routing_key='hello',
