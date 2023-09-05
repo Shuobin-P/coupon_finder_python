@@ -61,7 +61,6 @@ def get_hot_other_coupons():
     except requests.exceptions.RequestException as e:
         return jsonify({'error': '请求转发失败', 'message': str(e)}), 500
 
-#@jwt_required()
 @coupon_bp.route("/getCouponInfo", methods=['GET'])
 def get_coupon_info():
     """
@@ -151,8 +150,7 @@ def find_coupon():
     """
         模糊查询优惠券
     """
-    # TODO 待优化：如果优惠券数量多，那么模糊查询的效率会很低。最差可达到O(N*N)，因此，可以考虑使用全文检索来
-    # 替代sql的模糊查询
+    # TODO 待优化：Mysql中文全文索引 准确率不够
     verify_jwt_in_request()
     query_keyword = str(request.args.get("queryInfo"))
     sql_query = text(f"SELECT * FROM coupon WHERE MATCH(title) AGAINST(\"{query_keyword}\")")
@@ -161,7 +159,6 @@ def find_coupon():
     #result = g.db_session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()
     result = coupon_finder_engine.connect().execute(sql_query)
     after = time.time()
-    print("查询耗时： ", after - before)
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in result]
     return jsonify({"data": coupons,"time_gap": after - before})
 
