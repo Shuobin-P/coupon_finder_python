@@ -150,7 +150,7 @@ def find_coupon():
     """
         模糊查询优惠券
     """
-    # TODO 待优化：Mysql中文全文索引 准确率不够
+    # FIXME 待优化：Mysql中文全文索引 准确率不够
     verify_jwt_in_request()
     query_keyword = str(request.args.get("queryInfo"))
     sql_query = text(f"SELECT * FROM coupon WHERE MATCH(title) AGAINST(\"{query_keyword}\")")
