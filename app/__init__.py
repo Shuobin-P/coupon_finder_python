@@ -46,7 +46,6 @@ def create_app(test_config=None):
 
         @app.before_request
         def before_request():
-            # FIXME 这样处理毫无必要，不会在性能上有所提升，在创建数据库连接池之后，不需要手动进行管理。
             get_mq_connection()
 
         @app.after_request
