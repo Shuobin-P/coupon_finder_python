@@ -1,5 +1,5 @@
 from . import utils,coupon_finder_engine
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, current_app
 from sqlalchemy import and_,text
 from datetime import datetime
 from .models.coupon_finder_db_model import Coupon, GoodsDetailImage, User, CardPackageCoupon
@@ -17,6 +17,7 @@ def get_hot_drink_coupons():
     page_size = int(request.args.get("pageSize", 10))
     now_time = datetime.now()
     category_id = request.args.get("categoryId", 2)
+    print("打印jwt配置密钥：", current_app.config["JWT_SECRET_KEY"])
     query = utils.get_db_session().query(Coupon).filter(
         and_(
             Coupon.category_id == category_id,

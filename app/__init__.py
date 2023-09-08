@@ -2,11 +2,12 @@ import os
 import pika
 import redis
 import yaml
-from flask import Flask, g
+from flask import Flask, g, request
 from sqlalchemy import create_engine
 from flask_jwt_extended import JWTManager
 
 with open('app/config.yml') as f:
+    # FIXME 这些配置完全可以存储在app中，牺牲空间换取效率
     config = yaml.safe_load(f)
 
 def create_app(test_config=None):
@@ -48,6 +49,7 @@ def create_app(test_config=None):
         def before_request():
             # FIXME 这样处理毫无必要，不会在性能上有所提升，在创建数据库连接池之后，不需要手动进行管理。
             get_mq_connection()
+            print("用户IP：", request.remote_addr)
 
         @app.after_request
         def after_request(response):
