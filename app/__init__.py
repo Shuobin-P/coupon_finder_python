@@ -2,7 +2,7 @@ import os
 import pika
 import redis
 import yaml
-from flask import Flask, g
+from flask import Flask, g, request
 from sqlalchemy import create_engine
 from flask_jwt_extended import JWTManager
 
@@ -47,6 +47,7 @@ def create_app(test_config=None):
         @app.before_request
         def before_request():
             get_mq_connection()
+            print("用户IP：", request.remote_addr)
 
         @app.after_request
         def after_request(response):

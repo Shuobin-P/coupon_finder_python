@@ -1,11 +1,12 @@
-from . import utils,coupon_finder_engine
-from flask import Blueprint, request, jsonify, g
-from sqlalchemy import and_,text
-from datetime import datetime
-from .models.coupon_finder_db_model import Coupon, GoodsDetailImage, User, CardPackageCoupon
-from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
-import requests
 import time
+import requests
+from datetime import datetime
+
+from flask import Blueprint, request, jsonify, current_app
+from sqlalchemy import and_,text
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
+from . import utils,coupon_finder_engine
+from .models.coupon_finder_db_model import Coupon, GoodsDetailImage, User, CardPackageCoupon
 
 coupon_bp = Blueprint("coupon", __name__, url_prefix="/coupon")
 
@@ -17,6 +18,7 @@ def get_hot_drink_coupons():
     page_size = int(request.args.get("pageSize", 10))
     now_time = datetime.now()
     category_id = request.args.get("categoryId", 2)
+    print("打印jwt配置密钥：", current_app.config["JWT_SECRET_KEY"])
     query = utils.get_db_session().query(Coupon).filter(
         and_(
             Coupon.category_id == category_id,
@@ -156,7 +158,6 @@ def find_coupon():
     sql_query = text(f"SELECT * FROM coupon WHERE MATCH(title) AGAINST(\"{query_keyword}\")")
     # 执行查询
     before = time.time()
-    #result = g.db_session.query(Coupon).filter(Coupon.title.like(f"%{query_keyword}%")).all()
     result = coupon_finder_engine.connect().execute(sql_query)
     after = time.time()
     coupons = [{key: value for key, value in coupon.__dict__.items() if key != '_sa_instance_state'} for coupon in result]
