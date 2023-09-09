@@ -30,6 +30,9 @@ def verify():
 @jwt_required()
 @merchant_bp.route('/upload', methods=['POST'])
 def upload():
+    """
+        上传图片
+    """
     verify_jwt_in_request()
     open_id = get_jwt_identity()
     # 先暂时存储到本地，因为用户可能重发，最后用户点击提交的时候，再把图片从本地上传到七牛云
