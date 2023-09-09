@@ -1,4 +1,5 @@
 import time
+import yaml
 import requests
 from datetime import datetime
 
@@ -9,7 +10,9 @@ from . import utils,coupon_finder_engine
 from .models.coupon_finder_db_model import Coupon, GoodsDetailImage, User, CardPackageCoupon
 
 coupon_bp = Blueprint("coupon", __name__, url_prefix="/coupon")
-
+with open('app/config.yml') as f:
+    config = yaml.safe_load(f)
+    
 # 请从coupon表中根据coupon的使用数量按照从多到少的顺序查询所有数据
 # 并将查询结果转换为json格式
 @coupon_bp.route('/getHotCoupons', methods=['GET'])
@@ -18,7 +21,6 @@ def get_hot_drink_coupons():
     page_size = int(request.args.get("pageSize", 10))
     now_time = datetime.now()
     category_id = request.args.get("categoryId", 2)
-    print("打印jwt配置密钥：", current_app.config["JWT_SECRET_KEY"])
     query = utils.get_db_session().query(Coupon).filter(
         and_(
             Coupon.category_id == category_id,
@@ -39,7 +41,7 @@ def get_hot_drink_coupons():
 
 @coupon_bp.route('/getHotFoodCoupons', methods=['GET'])
 def get_hot_food_coupons():
-    url = "http://172.17.0.1:5000/coupon/getHotCoupons"
+    url = "http://" + str(config['local']['host']) + ":" + str(config['local']['port']) + "/coupon/getHotCoupons"
     params = {}
     params['categoryId'] =  1
     params.update(request.args)
@@ -52,7 +54,7 @@ def get_hot_food_coupons():
 
 @coupon_bp.route("/getHotOtherCoupons", methods=['GET'])
 def get_hot_other_coupons():
-    url = "http://172.17.0.1:5000/coupon/getHotCoupons"
+    url = "http://" + str(config['local']['host']) + ":" + str(config['local']['port']) + "/coupon/getHotCoupons"
     params = {}
     params['categoryId'] =  3
     params.update(request.args)
@@ -108,7 +110,6 @@ def get_coupon():
     open_id = get_jwt_identity()
     # 每种优惠券，每个用户只能领取一张
     card_package_id = utils.get_db_session().query(User.card_package_id).filter(User.open_id == open_id).first()[0]
-    print("卡包ID： ", card_package_id)
     result = utils.get_db_session().query(CardPackageCoupon).filter_by(
         card_package_id = card_package_id,
         coupon_id = coupon_id,
