@@ -35,7 +35,7 @@ def upload():
     # 先暂时存储到本地，因为用户可能重发，最后用户点击提交的时候，再把图片从本地上传到七牛云
     file_name = utils.generate_random_filename()
     if not os.path.exists('app/static/img/' + open_id):
-        os.mkdir('app/static/img/' + open_id)
+        os.makedirs('app/static/img/' + open_id)
     request.files['file'].save('app/static/img/' + open_id +'/'+ file_name+ '.jpg')
     return jsonify({
         "data": file_name + '.jpg'
