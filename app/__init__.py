@@ -37,12 +37,14 @@ def create_app(test_config=None):
         app.config['JWT_SECRET_KEY'] = '123456'
         app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600
         JWTManager(app)
-        from . import coupon, login, search, wallet, merchant
+        from . import coupon, login, search, wallet, merchant, customer_chat_service
         app.register_blueprint(login.login_bp)
         app.register_blueprint(coupon.coupon_bp)
         app.register_blueprint(search.search_bp)
         app.register_blueprint(wallet.wallet_bp)
         app.register_blueprint(merchant.merchant_bp)
+        app.register_blueprint(customer_chat_service.customer_chat_service_bp)
+
 
         @app.before_request
         def before_request():

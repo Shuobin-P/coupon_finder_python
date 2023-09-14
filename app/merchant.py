@@ -1,8 +1,10 @@
-import yaml,os,json
+import os
+import json
+import yaml
 from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt, create_access_token
 from . import utils
-from .models.coupon_finder_db_model import UserRole, Coupon
+from .models.coupon_finder_db_model import UserRole, Coupon, User
 
 merchant_bp = Blueprint("merchant", __name__, url_prefix="/merchant")
 with open('app/config.yml') as f:
@@ -128,3 +130,28 @@ def get_expired_coupon():
         "data": result
     })
 
+@jwt_required()
+@merchant_bp.route('/getCurrentShopID', methods=['GET'])
+def get_current_shop_id():
+    """
+        获得老板当前所在的店铺ID
+    """
+    verify_jwt_in_request()
+    open_id = get_jwt_identity()
+    query = utils.get_db_session().query(User.current_shop_id).filter(
+        User.open_id == open_id
+        ).all()
+    current_shop_id = query[0][0]
+    return jsonify({
+        "data": {
+            "current_shop_id": current_shop_id
+        }
+    })
+
+@jwt_required()
+@merchant_bp.route('/getAllShop', methods=['GET'])
+def get_all_shop_info():
+    """
+        获得老板所拥有的店铺列表
+    """
+    pass

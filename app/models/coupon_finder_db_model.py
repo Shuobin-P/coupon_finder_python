@@ -60,11 +60,13 @@ class User(Base):
     name = Column(String, nullable=False)
     open_id = Column(String, nullable=False)
     card_package_id = Column(Integer, nullable=False)
+    current_shop_id = Column(Integer, nullable=False)
     
-    def __init__(self, name, open_id, card_package_id):
+    def __init__(self, name, open_id, card_package_id, current_shop_id):
         self.name = name
         self.open_id = open_id
         self.card_package_id = card_package_id
+        self.current_shop_id = current_shop_id
 
 class UserRole(Base):
     __tablename__ = "user_role"
