@@ -1,4 +1,6 @@
-import os
-open_id = 'uUrt5PzNnDh8SiBBr_WyA3_myq0'
-if not os.path.exists('./static/img/' + open_id):
-        os.makedirs('./static/img/' + open_id)
+list_1 = [1,2]
+
+list_2 = [3,4]
+
+list_1 = list_1+list_2
+print(list_1)

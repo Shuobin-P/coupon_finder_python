@@ -101,3 +101,15 @@ class Category(Base):
 
     def __init__(self, name):
         self.name = name
+
+class Shop(Base):
+    __tablename__ = "shop"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(20), unique=True, nullable=False)
+    avatar = Column(String, nullable=False)
+    owner_id = Column(Integer, nullable=False)
+
+    def __init__(self, name, avatar, owner_id):
+        self.name = name
+        self.avatar = avatar
+        self.owner_id = owner_id

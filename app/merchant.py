@@ -4,7 +4,7 @@ import yaml
 from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt, create_access_token
 from . import utils
-from .models.coupon_finder_db_model import UserRole, Coupon, User
+from .models.coupon_finder_db_model import UserRole, Coupon, User, Shop
 
 merchant_bp = Blueprint("merchant", __name__, url_prefix="/merchant")
 with open('app/config.yml') as f:
@@ -149,9 +149,35 @@ def get_current_shop_id():
     })
 
 @jwt_required()
-@merchant_bp.route('/getAllShop', methods=['GET'])
+@merchant_bp.route('/getAllShopInfo', methods=['GET'])
 def get_all_shop_info():
     """
-        获得老板所拥有的店铺列表
+        获得老板所拥有的店铺列表，并且第一个是当前所在店铺。
+
+        Returns:
+            list:
+                item: 店铺图片，店铺名，
     """
-    pass
+    verify_jwt_in_request()
+    open_id = get_jwt_identity()
+    res = utils.get_db_session().query(User.id).filter(
+        User.open_id == open_id
+        ).all()
+    boss_user_id = res[0][0]
+    current_shop_id = request.args.get("current_shop_id")
+    exclude_current_shop_list = utils.get_db_session().query(Shop.name, Shop.avatar).filter(
+        Shop.owner_id == boss_user_id,
+        Shop.id != current_shop_id
+    ).all()
+    current_shop_info = utils.get_db_session().query(Shop.name, Shop.avatar).filter(
+        Shop.id == current_shop_id
+    ).all()
+    res = []
+    for e in (current_shop_info + exclude_current_shop_list):
+        res.append({
+            "name": e[0],
+            "avatar": e[1]
+        })
+    return {
+        "data": res
+    }
